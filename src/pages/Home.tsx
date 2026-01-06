@@ -17,7 +17,6 @@ import { ja } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useLogs } from '../hooks/useLogs';
 import { useAuth } from '../hooks/useAuth';
-import { QuickActionButton } from '../components/logs/QuickActionButton';
 import { TimelineItem } from '../components/logs/TimelineItem';
 import { LogEntryModal } from '../components/logs/LogEntryModal';
 import type { LogType, LogInsert } from '../types/database';

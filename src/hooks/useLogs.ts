@@ -7,8 +7,14 @@ interface UseLogsOptions {
   enableRealtime?: boolean;
 }
 
-// 固定のテストユーザーID（認証なしで使用）
+// テスト用のユーザーID（開発環境用）
 const TEST_USER_ID = '00000000-0000-0000-0000-000000000000';
+
+// 現在のユーザーIDを取得（認証済みなら実際のID、未認証ならテストID）
+const getUserId = async (): Promise<string> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id || TEST_USER_ID;
+};
 
 export const useLogs = (options: UseLogsOptions = {}) => {
   const { date = new Date(), enableRealtime = true } = options;
@@ -16,8 +22,14 @@ export const useLogs = (options: UseLogsOptions = {}) => {
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // 日付の開始・終了時刻を取得
+  // ユーザーIDを取得
+  useEffect(() => {
+    getUserId().then(setUserId);
+  }, []);
+
+  // 日付の開始・終了時刻を取得（JST）
   const getDateRange = useCallback((targetDate: Date) => {
     const start = new Date(targetDate);
     start.setHours(0, 0, 0, 0);
@@ -30,6 +42,8 @@ export const useLogs = (options: UseLogsOptions = {}) => {
 
   // 記録を取得
   const fetchLogs = useCallback(async () => {
+    if (!userId) return;
+
     try {
       setLoading(true);
       setError(null);
@@ -39,10 +53,10 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       const { data, error: fetchError } = await supabase
         .from('logs')
         .select('*')
-        .eq('user_id', TEST_USER_ID)
+        .eq('user_id', userId)
         .gte('logged_at', start.toISOString())
         .lte('logged_at', end.toISOString())
-        .order('logged_at', { ascending: false });
+        .order('logged_at', { ascending: true }); // 古い順（時系列順）
 
       if (fetchError) throw fetchError;
 
@@ -53,14 +67,18 @@ export const useLogs = (options: UseLogsOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [date, getDateRange]);
+  }, [date, getDateRange, userId]);
 
   // 記録を追加
   const addLog = useCallback(async (logData: Omit<LogInsert, 'user_id'>) => {
+    if (!userId) {
+      throw new Error('ユーザーIDが取得できません');
+    }
+
     try {
       const newLog: LogInsert = {
         ...logData,
-        user_id: TEST_USER_ID,
+        user_id: userId,
       };
 
       const { data, error: insertError } = await supabase
@@ -71,15 +89,17 @@ export const useLogs = (options: UseLogsOptions = {}) => {
 
       if (insertError) throw insertError;
 
-      // 楽観的UI更新
-      setLogs((prev) => [data, ...prev]);
+      // 楽観的UI更新（時系列順を保つ）
+      setLogs((prev) => [...prev, data].sort(
+        (a, b) => new Date(a.logged_at).getTime() - new Date(b.logged_at).getTime()
+      ));
 
       return data;
     } catch (err) {
       console.error('記録追加エラー:', err);
       throw err;
     }
-  }, []);
+  }, [userId]);
 
   // 記録を更新
   const updateLog = useCallback(async (id: string, updates: LogUpdate) => {
@@ -93,9 +113,10 @@ export const useLogs = (options: UseLogsOptions = {}) => {
 
       if (updateError) throw updateError;
 
-      // UIを更新
+      // UIを更新（時系列順を保つ）
       setLogs((prev) =>
         prev.map((log) => (log.id === id ? data : log))
+          .sort((a, b) => new Date(a.logged_at).getTime() - new Date(b.logged_at).getTime())
       );
 
       return data;
@@ -125,12 +146,14 @@ export const useLogs = (options: UseLogsOptions = {}) => {
 
   // 初回データ取得
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    if (userId) {
+      fetchLogs();
+    }
+  }, [fetchLogs, userId]);
 
   // リアルタイムサブスクリプション
   useEffect(() => {
-    if (!enableRealtime) return;
+    if (!enableRealtime || !userId) return;
 
     const channel = supabase
       .channel('logs-changes')
@@ -140,7 +163,7 @@ export const useLogs = (options: UseLogsOptions = {}) => {
           event: '*',
           schema: 'public',
           table: 'logs',
-          filter: `user_id=eq.${TEST_USER_ID}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           console.log('リアルタイム更新:', payload);
@@ -155,10 +178,8 @@ export const useLogs = (options: UseLogsOptions = {}) => {
                 if (prev.some((log) => log.id === newLog.id)) {
                   return prev;
                 }
-                return [newLog, ...prev].sort(
-                  (a, b) =>
-                    new Date(b.logged_at).getTime() -
-                    new Date(a.logged_at).getTime()
+                return [...prev, newLog].sort(
+                  (a, b) => new Date(a.logged_at).getTime() - new Date(b.logged_at).getTime()
                 );
               });
             }
@@ -166,6 +187,7 @@ export const useLogs = (options: UseLogsOptions = {}) => {
             const updatedLog = payload.new as Log;
             setLogs((prev) =>
               prev.map((log) => (log.id === updatedLog.id ? updatedLog : log))
+                .sort((a, b) => new Date(a.logged_at).getTime() - new Date(b.logged_at).getTime())
             );
           } else if (payload.eventType === 'DELETE') {
             const deletedLog = payload.old as Log;
@@ -178,12 +200,20 @@ export const useLogs = (options: UseLogsOptions = {}) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [date, enableRealtime]);
+  }, [date, enableRealtime, userId]);
+
+  // 集計データを計算
+  const summary = {
+    feeding: logs.filter(log => log.log_type === 'feeding').length,
+    poop: logs.filter(log => log.log_type === 'poop').length,
+    pee: logs.reduce((sum, log) => sum + (log.log_type === 'pee' ? (log.pee_count || 0) : 0), 0),
+  };
 
   return {
     logs,
     loading,
     error,
+    summary,
     addLog,
     updateLog,
     deleteLog,

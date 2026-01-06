@@ -2,7 +2,16 @@ import { format, formatDistanceToNow, differenceInMinutes } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
 /**
- * 日時を「HH:mm」形式でフォーマット
+ * UTC時刻をJSTに変換
+ */
+export const toJST = (date: Date | string): Date => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  // UTCからJST（+9時間）に変換
+  return new Date(d.getTime() + (9 * 60 * 60 * 1000));
+};
+
+/**
+ * 日時を「HH:mm」形式でフォーマット（JST）
  */
 export const formatTime = (date: Date | string): string => {
   const d = typeof date === 'string' ? new Date(date) : date;

@@ -17,6 +17,7 @@ import { useLogs } from '../hooks/useLogs';
 import { QuickActionButton } from '../components/logs/QuickActionButton';
 import { TimelineItem } from '../components/logs/TimelineItem';
 import { LogEntryModal } from '../components/logs/LogEntryModal';
+import { DailySummary } from '../components/logs/DailySummary';
 import type { LogType, LogInsert } from '../types/database';
 
 const quickActions = [
@@ -36,7 +37,7 @@ export const Home = () => {
   const [selectedLogType, setSelectedLogType] = useState<LogType>('feeding');
   const [editingLog, setEditingLog] = useState<string | null>(null);
 
-  const { logs, loading, addLog, updateLog, deleteLog, refetch } = useLogs({
+  const { logs, loading, summary, addLog, updateLog, deleteLog, refetch } = useLogs({
     date: selectedDate,
     enableRealtime: true,
   });
@@ -137,26 +138,40 @@ export const Home = () => {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
-        ) : logs.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400 text-lg">
-              まだ記録がありません
-            </p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
-              下のボタンから記録を追加しましょう
-            </p>
-          </div>
         ) : (
-          <div className="space-y-3">
-            {logs.map((log) => (
-              <TimelineItem
-                key={log.id}
-                log={log}
-                onEdit={() => handleEdit(log.id)}
-                onDelete={() => handleDelete(log.id)}
+          <>
+            {/* 集計表示 */}
+            {logs.length > 0 && (
+              <DailySummary
+                feeding={summary.feeding}
+                poop={summary.poop}
+                pee={summary.pee}
               />
-            ))}
-          </div>
+            )}
+
+            {/* 記録一覧 */}
+            {logs.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 dark:text-gray-400 text-lg">
+                  まだ記録がありません
+                </p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
+                  下のボタンから記録を追加しましょう
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {logs.map((log) => (
+                  <TimelineItem
+                    key={log.id}
+                    log={log}
+                    onEdit={() => handleEdit(log.id)}
+                    onDelete={() => handleDelete(log.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
 

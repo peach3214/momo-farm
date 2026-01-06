@@ -10,13 +10,13 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
-  LogOut,
 } from 'lucide-react';
 import { format, addDays, subDays } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { useNavigate } from 'react-router-dom';
 import { useLogs } from '../hooks/useLogs';
-import { useAuth } from '../hooks/useAuth';
+import { QuickActionButton } from '../components/logs/QuickActionButton';
+import { TimelineItem } from '../components/logs/TimelineItem';
+import { LogEntryModal } from '../components/logs/LogEntryModal';
 import type { LogType, LogInsert } from '../types/database';
 
 const quickActions = [
@@ -31,8 +31,6 @@ const quickActions = [
 ];
 
 export const Home = () => {
-  const navigate = useNavigate();
-  const { signOut } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedLogType, setSelectedLogType] = useState<LogType>('feeding');
@@ -74,13 +72,6 @@ export const Home = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    if (window.confirm('ログアウトしますか？')) {
-      await signOut();
-      navigate('/auth');
-    }
-  };
-
   const goToPreviousDay = () => {
     setSelectedDate((prev) => subDays(prev, 1));
   };
@@ -99,17 +90,10 @@ export const Home = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-[200px]">
       {/* ヘッダー */}
       <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-center">
             育児記録
           </h1>
-          <button
-            onClick={handleSignOut}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            title="ログアウト"
-          >
-            <LogOut className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          </button>
         </div>
       </header>
 

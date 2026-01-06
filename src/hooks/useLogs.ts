@@ -7,6 +7,9 @@ interface UseLogsOptions {
   enableRealtime?: boolean;
 }
 
+// 固定のテストユーザーID（認証なしで使用）
+const TEST_USER_ID = '00000000-0000-0000-0000-000000000000';
+
 export const useLogs = (options: UseLogsOptions = {}) => {
   const { date = new Date(), enableRealtime = true } = options;
   
@@ -32,16 +35,11 @@ export const useLogs = (options: UseLogsOptions = {}) => {
       setError(null);
 
       const { start, end } = getDateRange(date);
-      
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        throw new Error('ユーザーがログインしていません');
-      }
 
       const { data, error: fetchError } = await supabase
         .from('logs')
         .select('*')
-        .eq('user_id', user.user.id)
+        .eq('user_id', TEST_USER_ID)
         .gte('logged_at', start.toISOString())
         .lte('logged_at', end.toISOString())
         .order('logged_at', { ascending: false });
@@ -60,14 +58,9 @@ export const useLogs = (options: UseLogsOptions = {}) => {
   // 記録を追加
   const addLog = useCallback(async (logData: Omit<LogInsert, 'user_id'>) => {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        throw new Error('ユーザーがログインしていません');
-      }
-
       const newLog: LogInsert = {
         ...logData,
-        user_id: user.user.id,
+        user_id: TEST_USER_ID,
       };
 
       const { data, error: insertError } = await supabase
@@ -147,6 +140,7 @@ export const useLogs = (options: UseLogsOptions = {}) => {
           event: '*',
           schema: 'public',
           table: 'logs',
+          filter: `user_id=eq.${TEST_USER_ID}`,
         },
         (payload) => {
           console.log('リアルタイム更新:', payload);

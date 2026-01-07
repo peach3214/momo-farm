@@ -88,9 +88,9 @@ export const Home = () => {
   const isToday = selectedDate.toDateString() === new Date().toDateString();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-[200px]">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-32 sm:pb-24">
       {/* ヘッダー */}
-      <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 safe-area-inset-top">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 text-center">
             育児記録
@@ -149,6 +149,21 @@ export const Home = () => {
               />
             )}
 
+            {/* クイックアクションボタン（モバイルのみ上部表示） */}
+            <div className="sm:hidden mb-6">
+              <div className="grid grid-cols-4 gap-3">
+                {quickActions.map((action) => (
+                  <QuickActionButton
+                    key={action.type}
+                    icon={action.icon}
+                    label={action.label}
+                    color={action.color}
+                    onClick={() => handleQuickAction(action.type)}
+                  />
+                ))}
+              </div>
+            </div>
+
             {/* 記録一覧 */}
             {logs.length === 0 ? (
               <div className="text-center py-12">
@@ -156,7 +171,7 @@ export const Home = () => {
                   まだ記録がありません
                 </p>
                 <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
-                  下のボタンから記録を追加しましょう
+                  上のボタンから記録を追加しましょう
                 </p>
               </div>
             ) : (
@@ -175,8 +190,8 @@ export const Home = () => {
         )}
       </main>
 
-      {/* クイックアクションボタン */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg pb-safe-bottom">
+      {/* クイックアクションボタン（デスクトップのみ下部表示） */}
+      <div className="hidden sm:block fixed bottom-20 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="grid grid-cols-4 gap-3">
             {quickActions.map((action) => (

@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Home as HomeIcon, Calendar as CalendarIcon, ClipboardList, Menu, X, BarChart3 } from 'lucide-react';
+import { Home as HomeIcon, Calendar as CalendarIcon, ClipboardList, Menu, X, BarChart3, PieChart, Settings as SettingsIcon } from 'lucide-react';
 import { Home } from './pages/Home';
 import { Calendar } from './pages/Calendar';
 import { Checkups } from './pages/Checkups';
 import { Dashboard } from './pages/Dashboard';
+import { Statistics } from './pages/Statistics';
+import { Settings } from './pages/Settings';
 
 function Navigation() {
   const location = useLocation();
@@ -14,18 +16,20 @@ function Navigation() {
 
   const navItems = [
     { path: '/', icon: HomeIcon, label: 'ホーム' },
+    { path: '/statistics', icon: PieChart, label: '統計' },
+    { path: '/dashboard', icon: BarChart3, label: '成長' },
     { path: '/calendar', icon: CalendarIcon, label: 'カレンダー' },
     { path: '/checkups', icon: ClipboardList, label: '検診' },
-    { path: '/dashboard', icon: BarChart3, label: '成長' },
+    { path: '/settings', icon: SettingsIcon, label: '設定' },
   ];
 
   return (
     <>
-      {/* デスクトップ: ボトムナビゲーション */}
+      {/* デスクトップ: ボトムナビゲーション（主要4つ） */}
       <nav className="hidden sm:block fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-50 safe-area-inset-bottom">
         <div className="max-w-4xl mx-auto px-4">
           <div className="grid grid-cols-4 gap-2 py-2">
-            {navItems.map((item) => {
+            {navItems.slice(0, 4).map((item) => {
               const Icon = item.icon;
               return (
                 <Link
@@ -107,9 +111,11 @@ function AppContent() {
     <>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/statistics" element={<Statistics />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/checkups" element={<Checkups />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Navigation />

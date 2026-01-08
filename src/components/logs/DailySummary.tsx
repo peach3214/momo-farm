@@ -1,4 +1,4 @@
-import { Baby, Droplet, Droplets } from 'lucide-react';
+import { Baby, Soup, Droplets } from 'lucide-react';
 
 interface DailySummaryProps {
   feeding: number;
@@ -28,7 +28,7 @@ export const DailySummary = ({ feeding, poop, pee }: DailySummaryProps) => {
         {/* うんち */}
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-2 mb-1">
-            <Droplet className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <Soup className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             <span className="text-sm text-gray-600 dark:text-gray-400">うんち</span>
           </div>
           <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">

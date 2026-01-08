@@ -137,9 +137,9 @@ export const EventModal = ({
       />
 
       {/* モーダルコンテンツ */}
-      <div className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-xl max-h-[90vh] overflow-y-auto mx-auto">
         {/* ヘッダー */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
             {initialData ? 'イベント編集' : '新しいイベント'}
           </h2>
@@ -152,7 +152,7 @@ export const EventModal = ({
         </div>
 
         {/* フォーム */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
           {/* イベント名 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

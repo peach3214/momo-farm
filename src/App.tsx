@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Home as HomeIcon, Calendar as CalendarIcon, ClipboardList, Menu, X } from 'lucide-react';
+import { Home as HomeIcon, Calendar as CalendarIcon, ClipboardList, Menu, X, BarChart3 } from 'lucide-react';
 import { Home } from './pages/Home';
 import { Calendar } from './pages/Calendar';
 import { Checkups } from './pages/Checkups';
+import { Dashboard } from './pages/Dashboard';
 
 function Navigation() {
   const location = useLocation();
@@ -15,6 +16,7 @@ function Navigation() {
     { path: '/', icon: HomeIcon, label: 'ホーム' },
     { path: '/calendar', icon: CalendarIcon, label: 'カレンダー' },
     { path: '/checkups', icon: ClipboardList, label: '検診' },
+    { path: '/dashboard', icon: BarChart3, label: '成長' },
   ];
 
   return (
@@ -22,7 +24,7 @@ function Navigation() {
       {/* デスクトップ: ボトムナビゲーション */}
       <nav className="hidden sm:block fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-50 safe-area-inset-bottom">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="grid grid-cols-3 gap-2 py-2">
+          <div className="grid grid-cols-4 gap-2 py-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -107,6 +109,7 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/checkups" element={<Checkups />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Navigation />

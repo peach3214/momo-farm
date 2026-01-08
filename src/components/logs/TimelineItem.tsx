@@ -3,15 +3,15 @@ import {
   Moon, 
   Sun, 
   Heart, 
-  Droplet, 
+  Soup, 
   Droplets,
   Thermometer, 
   Ruler, 
   Utensils,
   FileText 
 } from 'lucide-react';
-import type { Log } from '../types/database';
-import { formatTime, formatFeedingDuration, formatBottleAmount } from "../../utils/formatters";
+import type { Log } from '../../types/database';
+import { formatTime, formatFeedingDuration, formatBottleAmount } from '../../utils/formatters';
 
 interface TimelineItemProps {
   log: Log;
@@ -25,7 +25,7 @@ const getLogIcon = (logType: Log['log_type']) => {
     sleep: Moon,
     wake: Sun,
     hold: Heart,
-    poop: Droplet,
+    poop: Soup,
     pee: Droplets,
     temperature: Thermometer,
     measurement: Ruler,
@@ -51,126 +51,170 @@ const getLogColor = (logType: Log['log_type']) => {
   return colorMap[logType] || colorMap.memo;
 };
 
-const getLogContent = (log: Log): string => {
-  switch (log.log_type) {
-    case 'feeding':
-      if (log.feeding_type === 'bottle') {
-        return `ミルク ${formatBottleAmount(log.feeding_amount_ml || 0)}`;
-      }
-      return `母乳 ${formatFeedingDuration(
-        log.feeding_duration_left_min,
-        log.feeding_duration_right_min
-      )}`;
-    
-    case 'sleep':
-    case 'hold':
-      if (log.end_time) {
-        const duration = Math.round(
-          (new Date(log.end_time).getTime() - new Date(log.start_time!).getTime()) / 60000
-        );
-        return `${duration}分`;
-      }
-      return '記録中';
-    
-    case 'poop':
-      const parts = [];
-      if (log.poop_amount) parts.push(log.poop_amount);
-      if (log.poop_consistency) parts.push(log.poop_consistency);
-      return parts.join(' / ');
-    
-    case 'pee':
-      return `${log.pee_count}回`;
-    
-    case 'temperature':
-      return `${log.temperature_celsius}℃`;
-    
-    case 'measurement':
-      const measurements = [];
-      if (log.height_cm) measurements.push(`${log.height_cm}cm`);
-      if (log.weight_g) measurements.push(`${(log.weight_g / 1000).toFixed(2)}kg`);
-      return measurements.join(' / ');
-    
-    case 'baby_food':
-      return log.baby_food_content || '離乳食';
-    
-    case 'memo':
-      return log.memo || 'メモ';
-    
-    default:
-      return '';
-  }
+const getLogLabel = (logType: Log['log_type']) => {
+  const labelMap = {
+    feeding: '授乳',
+    sleep: '寝る',
+    wake: '起きる',
+    hold: '抱っこ',
+    poop: 'うんち',
+    pee: 'しっこ',
+    temperature: '体温',
+    measurement: '身長体重',
+    baby_food: '離乳食',
+    memo: 'メモ',
+  };
+  return labelMap[logType] || 'メモ';
 };
 
 export const TimelineItem = ({ log, onEdit, onDelete }: TimelineItemProps) => {
   const Icon = getLogIcon(log.log_type);
-  const colorClass = getLogColor(log.log_type);
-  const content = getLogContent(log);
+  const color = getLogColor(log.log_type);
+  const label = getLogLabel(log.log_type);
+
+  const renderContent = () => {
+    switch (log.log_type) {
+      case 'feeding':
+        if (log.feeding_type === 'bottle') {
+          return (
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              ミルク {formatBottleAmount(log.feeding_amount_ml || 0)}
+            </p>
+          );
+        } else {
+          const leftDuration = formatFeedingDuration(log.feeding_duration_left_min || 0);
+          const rightDuration = formatFeedingDuration(log.feeding_duration_right_min || 0);
+          return (
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              {leftDuration && `左 ${leftDuration}`}
+              {leftDuration && rightDuration && ' / '}
+              {rightDuration && `右 ${rightDuration}`}
+            </p>
+          );
+        }
+
+      case 'sleep':
+      case 'hold':
+        if (log.end_time) {
+          const start = new Date(log.start_time!);
+          const end = new Date(log.end_time);
+          const duration = Math.floor((end.getTime() - start.getTime()) / 1000 / 60);
+          return (
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              {formatTime(log.start_time!)} 〜 {formatTime(log.end_time)}
+              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                ({duration}分)
+              </span>
+            </p>
+          );
+        }
+        return (
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            {formatTime(log.start_time!)} 〜
+          </p>
+        );
+
+      case 'poop':
+        const amount = log.poop_amount === 'small' ? '少量' : log.poop_amount === 'large' ? '多量' : '普通';
+        const consistency = log.poop_consistency === 'watery' ? '水様' : 
+                          log.poop_consistency === 'soft' ? '軟便' :
+                          log.poop_consistency === 'hard' ? '硬い' : '普通';
+        return (
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            {amount} / {log.poop_color} / {consistency}
+          </p>
+        );
+
+      case 'pee':
+        return (
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            {log.pee_count}回
+          </p>
+        );
+
+      case 'temperature':
+        const location = log.temperature_location === 'armpit' ? '脇下' :
+                        log.temperature_location === 'oral' ? '口腔' :
+                        log.temperature_location === 'forehead' ? '額' : '耳';
+        return (
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            {log.temperature_celsius}℃ ({location})
+          </p>
+        );
+
+      case 'measurement':
+        return (
+          <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+            {log.height_cm && <p>身長: {log.height_cm}cm</p>}
+            {log.weight_g && <p>体重: {(log.weight_g / 1000).toFixed(2)}kg</p>}
+            {log.head_circumference_cm && <p>頭囲: {log.head_circumference_cm}cm</p>}
+          </div>
+        );
+
+      case 'baby_food':
+        const foodAmount = log.baby_food_amount === 'all' ? '完食' :
+                          log.baby_food_amount === 'half' ? '半分' :
+                          log.baby_food_amount === 'little' ? '少し' : '食べず';
+        return (
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            {log.baby_food_content} ({foodAmount})
+          </p>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="flex gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-      {/* 時刻 */}
-      <div className="flex flex-col items-center min-w-[60px]">
-        <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {formatTime(log.logged_at)}
-        </span>
-      </div>
-
-      {/* アイコンとコンテンツ */}
-      <div className="flex-1 flex items-center gap-3">
-        <div className={`p-2 rounded-full ${colorClass}`}>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+      <div className="flex items-start gap-3">
+        {/* アイコン */}
+        <div className={`flex-shrink-0 w-10 h-10 rounded-full ${color} flex items-center justify-center`}>
           <Icon className="w-5 h-5" />
         </div>
-        
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-            {content}
-          </p>
+
+        {/* コンテンツ */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-1">
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{label}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {formatTime(log.logged_at)}
+              </p>
+            </div>
+
+            {/* アクションボタン */}
+            <div className="flex items-center gap-1 ml-2">
+              <button
+                onClick={onEdit}
+                className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              <button
+                onClick={onDelete}
+                className="p-1.5 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* 詳細 */}
+          {renderContent()}
+
+          {/* メモ */}
           {log.memo && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 italic">
               {log.memo}
             </p>
           )}
         </div>
-      </div>
-
-      {/* アクション */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onEdit}
-          className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
-        </button>
-        <button
-          onClick={onDelete}
-          className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
-        </button>
       </div>
     </div>
   );

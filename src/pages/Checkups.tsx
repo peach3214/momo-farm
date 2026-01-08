@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Search, Calendar as CalendarIcon } from 'lucide-react';
 import { useCheckups } from '../hooks/useCheckups';
+import { useEvents } from '../hooks/useEvents';
 import { CheckupCard } from '../components/checkups/CheckupCard';
 import { CheckupModal } from '../components/checkups/CheckupModal';
 import type { Checkup, CheckupInsert } from '../types/database';
@@ -12,30 +13,49 @@ export const Checkups = () => {
   const [filterType, setFilterType] = useState<string>('all');
 
   const { checkups, loading, addCheckup, updateCheckup, deleteCheckup } = useCheckups();
+  const { addEvent, updateEvent, deleteEvent, events } = useEvents();
+
+  // 今日の日付
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 検診を未来と過去に分類
+  const futureCheckups = checkups.filter(c => new Date(c.checkup_date) >= today);
+  const pastCheckups = checkups.filter(c => new Date(c.checkup_date) < today);
 
   // フィルタリング
-  const filteredCheckups = checkups.filter((checkup) => {
-    // タイプフィルタ
-    if (filterType !== 'all' && checkup.checkup_type !== filterType) {
-      return false;
-    }
+  const filterCheckups = (checkupList: Checkup[]) => {
+    return checkupList.filter((checkup) => {
+      // タイプフィルタ
+      if (filterType !== 'all' && checkup.checkup_type !== filterType) {
+        return false;
+      }
 
-    // 検索フィルタ
-    if (searchQuery) {
-      const searchLower = searchQuery.toLowerCase();
-      const checkupTypeName = checkup.checkup_type === 'custom' && checkup.custom_type_name
-        ? checkup.custom_type_name
-        : checkup.checkup_type;
-      
-      return (
-        checkupTypeName.toLowerCase().includes(searchLower) ||
-        checkup.summary?.toLowerCase().includes(searchLower) ||
-        checkup.doctor_comments?.toLowerCase().includes(searchLower)
-      );
-    }
+      // 検索フィルタ
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase();
+        const checkupTypeName = checkup.checkup_type === 'custom' && checkup.custom_type_name
+          ? checkup.custom_type_name
+          : checkup.checkup_type;
+        
+        return (
+          checkupTypeName.toLowerCase().includes(searchLower) ||
+          checkup.summary?.toLowerCase().includes(searchLower) ||
+          checkup.doctor_comments?.toLowerCase().includes(searchLower)
+        );
+      }
 
-    return true;
-  });
+      return true;
+    });
+  };
+
+  const filteredFutureCheckups = filterCheckups(futureCheckups).sort(
+    (a, b) => new Date(a.checkup_date).getTime() - new Date(b.checkup_date).getTime()
+  );
+
+  const filteredPastCheckups = filterCheckups(pastCheckups).sort(
+    (a, b) => new Date(b.checkup_date).getTime() - new Date(a.checkup_date).getTime()
+  );
 
   // 検診追加
   const handleAdd = () => {
@@ -51,11 +71,38 @@ export const Checkups = () => {
 
   // 検診保存
   const handleSubmit = async (data: Omit<CheckupInsert, 'user_id'>) => {
-    if (editingCheckup) {
-      await updateCheckup(editingCheckup.id, data);
-    } else {
-      await addCheckup(data);
+    try {
+      if (editingCheckup) {
+        await updateCheckup(editingCheckup.id, data);
+        
+        // カレンダーのイベントも更新
+        const relatedEvent = events.find(e => 
+          e.event_date === editingCheckup.checkup_date && 
+          e.event_name.includes('検診')
+        );
+        if (relatedEvent) {
+          await updateEvent(relatedEvent.id, {
+            event_name: data.custom_type_name || '検診',
+            event_date: data.checkup_date,
+            category: 'checkup',
+          });
+        }
+      } else {
+        await addCheckup(data);
+        
+        // カレンダーにイベントも追加
+        await addEvent({
+          event_name: data.custom_type_name || '検診',
+          event_date: data.checkup_date,
+          category: 'checkup',
+          is_relative: false,
+          relative_days: null,
+        });
+      }
+    } catch (error) {
+      console.error('検診保存エラー:', error);
     }
+    
     setModalOpen(false);
     setEditingCheckup(null);
   };
@@ -127,29 +174,63 @@ export const Checkups = () => {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
-        ) : filteredCheckups.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400 text-lg mb-2">
-              {searchQuery || filterType !== 'all'
-                ? '検索条件に一致する検診がありません'
-                : 'まだ検診記録がありません'}
-            </p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm">
-              右上のボタンから検診記録を追加しましょう
-            </p>
-          </div>
         ) : (
-          <div className="grid gap-4">
-            {filteredCheckups.map((checkup) => (
-              <CheckupCard
-                key={checkup.id}
-                checkup={checkup}
-                onEdit={() => handleEdit(checkup)}
-                onDelete={() => deleteCheckup(checkup.id)}
-                onClick={() => handleEdit(checkup)}
-              />
-            ))}
-          </div>
+          <>
+            {/* 今後の予定 */}
+            {filteredFutureCheckups.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                  <CalendarIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  今後の予定
+                </h2>
+                <div className="grid gap-4">
+                  {filteredFutureCheckups.map((checkup) => (
+                    <CheckupCard
+                      key={checkup.id}
+                      checkup={checkup}
+                      onEdit={() => handleEdit(checkup)}
+                      onDelete={() => deleteCheckup(checkup.id)}
+                      onClick={() => handleEdit(checkup)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 過去の記録 */}
+            {filteredPastCheckups.length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+                  過去の記録
+                </h2>
+                <div className="grid gap-4">
+                  {filteredPastCheckups.map((checkup) => (
+                    <CheckupCard
+                      key={checkup.id}
+                      checkup={checkup}
+                      onEdit={() => handleEdit(checkup)}
+                      onDelete={() => deleteCheckup(checkup.id)}
+                      onClick={() => handleEdit(checkup)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 空状態 */}
+            {filteredFutureCheckups.length === 0 && filteredPastCheckups.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500 dark:text-gray-400 text-lg mb-2">
+                  {searchQuery || filterType !== 'all'
+                    ? '検索条件に一致する検診がありません'
+                    : 'まだ検診記録がありません'}
+                </p>
+                <p className="text-gray-400 dark:text-gray-500 text-sm">
+                  右上のボタンから検診記録を追加しましょう
+                </p>
+              </div>
+            )}
+          </>
         )}
       </main>
 

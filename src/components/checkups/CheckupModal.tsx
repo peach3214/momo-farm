@@ -31,8 +31,7 @@ export const CheckupModal = ({
   
   // 基本情報
   const [checkupDate, setCheckupDate] = useState('');
-  const [checkupType, setCheckupType] = useState('1month');
-  const [customTypeName, setCustomTypeName] = useState('');
+  const [checkupName, setCheckupName] = useState('');
 
   // 身体測定（アコーディオン）
   const [measurementOpen, setMeasurementOpen] = useState(true);
@@ -59,8 +58,7 @@ export const CheckupModal = ({
   useEffect(() => {
     if (initialData) {
       setCheckupDate(initialData.checkup_date);
-      setCheckupType(initialData.checkup_type);
-      setCustomTypeName(initialData.custom_type_name || '');
+      setCheckupName(initialData.custom_type_name || '');
       setHeightCm(initialData.height_cm || '');
       setWeightG(initialData.weight_g || '');
       setHeadCircumference(initialData.head_circumference_cm || '');
@@ -72,8 +70,7 @@ export const CheckupModal = ({
     } else {
       // 新規作成時はリセット
       setCheckupDate(new Date().toISOString().split('T')[0]);
-      setCheckupType('1month');
-      setCustomTypeName('');
+      setCheckupName('');
       setHeightCm('');
       setWeightG('');
       setHeadCircumference('');
@@ -114,8 +111,8 @@ export const CheckupModal = ({
     try {
       const checkupData: Omit<CheckupInsert, 'user_id'> = {
         checkup_date: checkupDate,
-        checkup_type: checkupType as any,
-        custom_type_name: checkupType === 'custom' ? customTypeName : undefined,
+        checkup_type: 'custom',
+        custom_type_name: checkupName,
         height_cm: heightCm !== '' ? Number(heightCm) : undefined,
         weight_g: weightG !== '' ? Number(weightG) : undefined,
         head_circumference_cm: headCircumference !== '' ? Number(headCircumference) : undefined,
@@ -149,7 +146,7 @@ export const CheckupModal = ({
       {/* モーダルコンテンツ */}
       <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-xl max-h-[90vh] overflow-y-auto">
         {/* ヘッダー */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
             {initialData ? '検診記録編集' : '新しい検診記録'}
           </h2>
@@ -162,7 +159,7 @@ export const CheckupModal = ({
         </div>
 
         {/* フォーム */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           {/* 基本情報 */}
           <div className="space-y-4">
             <div>
@@ -180,36 +177,17 @@ export const CheckupModal = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                検診種類 <span className="text-red-500">*</span>
+                検診名 <span className="text-red-500">*</span>
               </label>
-              <select
-                value={checkupType}
-                onChange={(e) => setCheckupType(e.target.value)}
+              <input
+                type="text"
+                value={checkupName}
+                onChange={(e) => setCheckupName(e.target.value)}
+                placeholder="例: 1ヶ月検診、BCG予防接種"
                 required
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-              >
-                {checkupTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-
-            {checkupType === 'custom' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  検診名
-                </label>
-                <input
-                  type="text"
-                  value={customTypeName}
-                  onChange={(e) => setCustomTypeName(e.target.value)}
-                  placeholder="例: 5ヶ月検診"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                />
-              </div>
-            )}
           </div>
 
           {/* 身体測定（アコーディオン） */}

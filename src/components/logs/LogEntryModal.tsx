@@ -23,23 +23,6 @@ const logTypeLabels: Record<LogType, string> = {
   memo: 'メモ',
 };
 
-// UTCからJSTの文字列に変換（datetime-local用）
-const toJSTString = (date: Date | string): string => {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
-// datetime-localの値（JST）からUTC Dateオブジェクトを作成
-const fromJSTString = (jstString: string): Date => {
-  // datetime-local の値はローカルタイムゾーンとして解釈される
-  return new Date(jstString);
-};
-
 export const LogEntryModal = ({
   isOpen,
   onClose,
@@ -49,9 +32,7 @@ export const LogEntryModal = ({
 }: LogEntryModalProps) => {
   const [loading, setLoading] = useState(false);
   const [loggedAt, setLoggedAt] = useState(
-    initialData?.logged_at 
-      ? toJSTString(new Date(initialData.logged_at))
-      : toJSTString(new Date())
+    initialData?.logged_at || new Date().toISOString().slice(0, 16)
   );
   const [memo, setMemo] = useState(initialData?.memo || '');
 
@@ -71,14 +52,10 @@ export const LogEntryModal = ({
 
   // 睡眠・抱っこ
   const [startTime, setStartTime] = useState(
-    initialData?.start_time
-      ? toJSTString(new Date(initialData.start_time))
-      : toJSTString(new Date())
+    initialData?.start_time || new Date().toISOString().slice(0, 16)
   );
   const [endTime, setEndTime] = useState(
-    initialData?.end_time
-      ? toJSTString(new Date(initialData.end_time))
-      : toJSTString(new Date())
+    initialData?.end_time || new Date().toISOString().slice(0, 16)
   );
 
   // うんち
@@ -123,7 +100,7 @@ export const LogEntryModal = ({
     try {
       const baseData = {
         log_type: logType,
-        logged_at: fromJSTString(loggedAt).toISOString(),
+        logged_at: new Date(loggedAt).toISOString(),
         memo: memo || undefined,
       };
 
@@ -148,8 +125,8 @@ export const LogEntryModal = ({
         case 'sleep':
         case 'hold':
           specificData = {
-            start_time: fromJSTString(startTime).toISOString(),
-            end_time: endTime ? fromJSTString(endTime).toISOString() : undefined,
+            start_time: new Date(startTime).toISOString(),
+            end_time: endTime ? new Date(endTime).toISOString() : undefined,
           };
           break;
 
@@ -212,9 +189,9 @@ export const LogEntryModal = ({
       />
 
       {/* モーダルコンテンツ */}
-      <div className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-xl max-h-[90vh] overflow-y-auto mx-auto">
         {/* ヘッダー */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
             {logTypeLabels[logType]}
           </h2>
@@ -227,7 +204,7 @@ export const LogEntryModal = ({
         </div>
 
         {/* フォーム */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
           {/* 日時 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

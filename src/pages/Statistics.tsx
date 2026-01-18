@@ -213,7 +213,6 @@ export const Statistics = () => {
                 <span>18</span>
                 <span>24</span>
               </div>
-              <div className="w-10"></div>
             </div>
 
             <div className="space-y-2">
@@ -328,13 +327,6 @@ export const Statistics = () => {
                             />
                           );
                         })}
-                    </div>
-
-                    {/* イベント数 */}
-                    <div className="flex-shrink-0 w-10 text-center">
-                      <span className="inline-flex items-center justify-center w-7 h-7 text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-full">
-                        {dayLogs.length}
-                      </span>
                     </div>
                   </div>
                 );
@@ -703,34 +695,6 @@ export const Statistics = () => {
             </div>
           </div>
         </div>
-
-        {logs.length > 0 && (
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 rounded-xl p-4 border border-purple-100 dark:border-purple-900">
-            <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-2">
-              💡 インサイト
-            </h2>
-            <ul className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
-              {totalStats.avgFeedingPerDay > 10 && (
-                <li className="flex items-start gap-2">
-                  <TrendingUp className="w-4 h-4 text-pink-600 dark:text-pink-400 mt-0.5 flex-shrink-0" />
-                  <span>授乳回数が多めです（1日平均{totalStats.avgFeedingPerDay.toFixed(1)}回）</span>
-                </li>
-              )}
-              {totalStats.poopCount === 0 && (
-                <li className="flex items-start gap-2">
-                  <TrendingDown className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                  <span>うんちが記録されていません。便秘の可能性もあるので注意しましょう。</span>
-                </li>
-              )}
-              {totalStats.avgPoopPerDay < 1 && totalStats.poopCount > 0 && (
-                <li className="flex items-start gap-2">
-                  <TrendingDown className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                  <span>うんちの回数が少なめです（1日平均{totalStats.avgPoopPerDay.toFixed(1)}回）</span>
-                </li>
-              )}
-            </ul>
-          </div>
-        )}
       </main>
     </div>
   );

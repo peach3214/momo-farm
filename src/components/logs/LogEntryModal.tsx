@@ -31,8 +31,21 @@ export const LogEntryModal = ({
   initialData,
 }: LogEntryModalProps) => {
   const [loading, setLoading] = useState(false);
+  
+  // JST（Tokyo時間）で現在時刻を取得
+  const getJSTDateTimeString = (date: Date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const [loggedAt, setLoggedAt] = useState(
-    initialData?.logged_at || new Date().toISOString().slice(0, 16)
+    initialData?.logged_at 
+      ? getJSTDateTimeString(new Date(initialData.logged_at))
+      : getJSTDateTimeString()
   );
   const [memo, setMemo] = useState(initialData?.memo || '');
 
@@ -41,10 +54,10 @@ export const LogEntryModal = ({
     initialData?.feeding_type === 'bottle' ? 'bottle' : 'breast'
   );
   const [leftMin, setLeftMin] = useState(
-    initialData?.feeding_duration_left_min || 0
+    initialData?.feeding_duration_left_min || 10
   );
   const [rightMin, setRightMin] = useState(
-    initialData?.feeding_duration_right_min || 0
+    initialData?.feeding_duration_right_min || 10
   );
   const [bottleAmount, setBottleAmount] = useState(
     initialData?.feeding_amount_ml || 0
@@ -52,15 +65,30 @@ export const LogEntryModal = ({
 
   // 睡眠・抱っこ
   const [startTime, setStartTime] = useState(
-    initialData?.start_time || new Date().toISOString().slice(0, 16)
+    initialData?.start_time
+      ? getJSTDateTimeString(new Date(initialData.start_time))
+      : getJSTDateTimeString()
   );
   const [endTime, setEndTime] = useState(
-    initialData?.end_time || new Date().toISOString().slice(0, 16)
+    initialData?.end_time
+      ? getJSTDateTimeString(new Date(initialData.end_time))
+      : getJSTDateTimeString()
   );
 
   // うんち
-  const [poopAmount, setPoopAmount] = useState(
-    initialData?.poop_amount || 'medium'
+  const [poopAmount, setPoopAmount] = useState<number>(
+    (() => {
+      if (initialData?.poop_amount) {
+        const val = String(initialData.poop_amount);
+        // 既存の文字列データを数値に変換
+        if (val === 'small') return 3;
+        if (val === 'medium') return 5;
+        if (val === 'large') return 8;
+        const num = parseInt(val);
+        return isNaN(num) ? 5 : num;
+      }
+      return 5;
+    })()
   );
   const [poopColor, setPoopColor] = useState(initialData?.poop_color || '黄色');
   const [poopConsistency, setPoopConsistency] = useState(
@@ -132,7 +160,7 @@ export const LogEntryModal = ({
 
         case 'poop':
           specificData = {
-            poop_amount: poopAmount as any,
+            poop_amount: String(poopAmount) as any,
             poop_color: poopColor,
             poop_consistency: poopConsistency as any,
           };
@@ -214,7 +242,7 @@ export const LogEntryModal = ({
               type="datetime-local"
               value={loggedAt}
               onChange={(e) => setLoggedAt(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 text-sm"
               required
             />
           </div>
@@ -253,27 +281,31 @@ export const LogEntryModal = ({
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       左（分）
                     </label>
-                    <input
-                      type="number"
+                    <select
                       value={leftMin}
                       onChange={(e) => setLeftMin(Number(e.target.value))}
-                      min="0"
-                      max="180"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                    />
+                    >
+                      <option value={0}>なし</option>
+                      {[5, 10, 15, 20, 25, 30].map(min => (
+                        <option key={min} value={min}>{min}分</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       右（分）
                     </label>
-                    <input
-                      type="number"
+                    <select
                       value={rightMin}
                       onChange={(e) => setRightMin(Number(e.target.value))}
-                      min="0"
-                      max="180"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                    />
+                    >
+                      <option value={0}>なし</option>
+                      {[5, 10, 15, 20, 25, 30].map(min => (
+                        <option key={min} value={min}>{min}分</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               ) : (
@@ -327,16 +359,16 @@ export const LogEntryModal = ({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  量
+                  量（1-10段階）
                 </label>
                 <select
                   value={poopAmount}
-                  onChange={(e) => setPoopAmount(e.target.value)}
+                  onChange={(e) => setPoopAmount(Number(e.target.value))}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 >
-                  <option value="small">少量</option>
-                  <option value="medium">普通</option>
-                  <option value="large">多量</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                    <option key={num} value={num}>{num}</option>
+                  ))}
                 </select>
               </div>
               <div>

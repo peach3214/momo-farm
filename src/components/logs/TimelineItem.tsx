@@ -115,13 +115,24 @@ export const TimelineItem = ({ log, onEdit, onDelete }: TimelineItemProps) => {
         );
 
       case 'poop':
-        const amount = log.poop_amount === 'small' ? '少量' : log.poop_amount === 'large' ? '多量' : '普通';
+        // 1-10段階の数値または古い形式の文字列に対応
+        let amountDisplay = '普通';
+        if (log.poop_amount) {
+          const val = String(log.poop_amount);
+          if (val === 'small') amountDisplay = '少量';
+          else if (val === 'large') amountDisplay = '多量';
+          else if (val === 'medium') amountDisplay = '普通';
+          else {
+            const num = parseInt(val);
+            if (!isNaN(num)) amountDisplay = `量: ${num}`;
+          }
+        }
         const consistency = log.poop_consistency === 'watery' ? '水様' : 
                           log.poop_consistency === 'soft' ? '軟便' :
                           log.poop_consistency === 'hard' ? '硬い' : '普通';
         return (
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            {amount} / {log.poop_color} / {consistency}
+            {amountDisplay} / {log.poop_color} / {consistency}
           </p>
         );
 

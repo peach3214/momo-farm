@@ -159,8 +159,18 @@ export const LogEntryModal = ({
           break;
 
         case 'poop':
+          // 1-10の数値を古い形式に変換（データベースの制約に合わせる）
+          let poopAmountValue: string;
+          if (poopAmount <= 3) {
+            poopAmountValue = 'small';
+          } else if (poopAmount >= 7) {
+            poopAmountValue = 'large';
+          } else {
+            poopAmountValue = 'medium';
+          }
+          
           specificData = {
-            poop_amount: String(poopAmount) as any,
+            poop_amount: poopAmountValue as any,
             poop_color: poopColor,
             poop_consistency: poopConsistency as any,
           };
@@ -287,7 +297,7 @@ export const LogEntryModal = ({
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                     >
                       <option value={0}>なし</option>
-                      {[5, 10, 15, 20, 25, 30].map(min => (
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map(min => (
                         <option key={min} value={min}>{min}分</option>
                       ))}
                     </select>

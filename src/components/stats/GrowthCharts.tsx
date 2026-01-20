@@ -10,12 +10,20 @@ interface GrowthChartProps {
 }
 
 export const HeightChart = ({ data }: GrowthChartProps) => {
+  // データの加工
   const chartData = data
-    .filter(d => d.height !== null)
-    .map(d => ({
-      date: new Date(d.date).toLocaleDateString('ja-JP', { month: 'M月', day: 'd日' }),
-      height: d.height,
-    }));
+    .filter((d) => d.height !== null)
+    .map((d) => {
+      const dateObj = new Date(d.date);
+      return {
+        // 'ja-JP'で month: 'numeric', day: 'numeric' を指定すると「1/1」のような形式になります
+        date: dateObj.toLocaleDateString('ja-JP', {
+          month: 'numeric',
+          day: 'numeric',
+        }),
+        height: d.height,
+      };
+    });
 
   if (chartData.length === 0) {
     return (
@@ -26,7 +34,9 @@ export const HeightChart = ({ data }: GrowthChartProps) => {
     );
   }
 
-  const maxHeight = Math.max(...chartData.map(d => d.height || 0));
+  const heights = chartData.map((d) => d.height || 0);
+  const minHeight = Math.floor(Math.min(...heights) * 0.95);
+  const maxHeight = Math.ceil(Math.max(...heights) * 1.05);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -36,40 +46,43 @@ export const HeightChart = ({ data }: GrowthChartProps) => {
           身長の推移
         </h2>
       </div>
-      
+
       <div className="p-4">
         <div style={{ width: '100%', height: '300px' }}>
           <ResponsiveContainer>
-            <LineChart data={chartData}>
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-              <XAxis 
-                dataKey="date" 
+              <XAxis
+                dataKey="date"
                 stroke="#6b7280"
                 style={{ fontSize: '11px' }}
                 tick={{ fill: '#6b7280' }}
+                tickLine={false}
+                axisLine={false}
               />
-              <YAxis 
+              <YAxis
                 stroke="#6b7280"
                 style={{ fontSize: '11px' }}
                 tick={{ fill: '#6b7280' }}
-                domain={[0, Math.ceil(maxHeight * 1.2)]}
-                label={{ value: 'cm', position: 'insideLeft', offset: 10, style: { fontSize: '12px', fill: '#6b7280' } }}
+                tickLine={false}
+                axisLine={false}
+                domain={[minHeight, maxHeight]}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
                   background: 'white',
                   border: '1px solid #e5e7eb',
                   borderRadius: '8px',
                   fontSize: '12px',
-                  padding: '8px 12px'
+                  padding: '8px 12px',
                 }}
                 labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
                 formatter={(value: any) => [`${value} cm`, '身長']}
               />
-              <Line 
-                type="monotone" 
-                dataKey="height" 
-                stroke="#10b981" 
+              <Line
+                type="monotone"
+                dataKey="height"
+                stroke="#10b981"
                 strokeWidth={3}
                 dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: 'white' }}
                 activeDot={{ r: 6 }}
@@ -85,11 +98,17 @@ export const HeightChart = ({ data }: GrowthChartProps) => {
 
 export const WeightChart = ({ data }: GrowthChartProps) => {
   const chartData = data
-    .filter(d => d.weight !== null)
-    .map(d => ({
-      date: new Date(d.date).toLocaleDateString('ja-JP', { month: 'M月', day: 'd日' }),
-      weight: d.weight,
-    }));
+    .filter((d) => d.weight !== null)
+    .map((d) => {
+      const dateObj = new Date(d.date);
+      return {
+        date: dateObj.toLocaleDateString('ja-JP', {
+          month: 'numeric',
+          day: 'numeric',
+        }),
+        weight: d.weight,
+      };
+    });
 
   if (chartData.length === 0) {
     return (
@@ -100,7 +119,9 @@ export const WeightChart = ({ data }: GrowthChartProps) => {
     );
   }
 
-  const maxWeight = Math.max(...chartData.map(d => d.weight || 0));
+  const weights = chartData.map((d) => d.weight || 0);
+  const minWeight = Math.floor(Math.min(...weights) * 0.9);
+  const maxWeight = Math.ceil(Math.max(...weights) * 1.1);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -110,40 +131,43 @@ export const WeightChart = ({ data }: GrowthChartProps) => {
           体重の推移
         </h2>
       </div>
-      
+
       <div className="p-4">
         <div style={{ width: '100%', height: '300px' }}>
           <ResponsiveContainer>
-            <LineChart data={chartData}>
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-              <XAxis 
-                dataKey="date" 
+              <XAxis
+                dataKey="date"
                 stroke="#6b7280"
                 style={{ fontSize: '11px' }}
                 tick={{ fill: '#6b7280' }}
+                tickLine={false}
+                axisLine={false}
               />
-              <YAxis 
+              <YAxis
                 stroke="#6b7280"
                 style={{ fontSize: '11px' }}
                 tick={{ fill: '#6b7280' }}
-                domain={[0, Math.ceil(maxWeight * 1.2)]}
-                label={{ value: 'kg', position: 'insideLeft', offset: 10, style: { fontSize: '12px', fill: '#6b7280' } }}
+                tickLine={false}
+                axisLine={false}
+                domain={[minWeight, maxWeight]}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
                   background: 'white',
                   border: '1px solid #e5e7eb',
                   borderRadius: '8px',
                   fontSize: '12px',
-                  padding: '8px 12px'
+                  padding: '8px 12px',
                 }}
                 labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
                 formatter={(value: any) => [`${value} kg`, '体重']}
               />
-              <Line 
-                type="monotone" 
-                dataKey="weight" 
-                stroke="#3b82f6" 
+              <Line
+                type="monotone"
+                dataKey="weight"
+                stroke="#3b82f6"
                 strokeWidth={3}
                 dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: 'white' }}
                 activeDot={{ r: 6 }}

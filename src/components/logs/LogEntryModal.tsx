@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { LogType, LogInsert } from '../types/database';
 
@@ -72,7 +72,7 @@ export const LogEntryModal = ({
   const [endTime, setEndTime] = useState(
     initialData?.end_time
       ? getJSTDateTimeString(new Date(initialData.end_time))
-      : getJSTDateTimeString()
+      : ''
   );
 
   // うんち
@@ -120,6 +120,44 @@ export const LogEntryModal = ({
   const [babyFoodAmount, setBabyFoodAmount] = useState(
     initialData?.baby_food_amount || 'all'
   );
+
+  // initialDataが変更されたら状態を更新
+  useEffect(() => {
+    if (initialData) {
+      setLoggedAt(initialData.logged_at ? getJSTDateTimeString(new Date(initialData.logged_at)) : getJSTDateTimeString());
+      setMemo(initialData.memo || '');
+      setFeedingType(initialData.feeding_type === 'bottle' ? 'bottle' : 'breast');
+      setLeftMin(initialData.feeding_duration_left_min || 10);
+      setRightMin(initialData.feeding_duration_right_min || 10);
+      setBottleAmount(initialData.feeding_amount_ml || 0);
+      setStartTime(initialData.start_time ? getJSTDateTimeString(new Date(initialData.start_time)) : getJSTDateTimeString());
+      setEndTime(initialData.end_time ? getJSTDateTimeString(new Date(initialData.end_time)) : '');
+      
+      if (initialData.poop_amount) {
+        const val = String(initialData.poop_amount);
+        if (val === 'small') setPoopAmount(3);
+        else if (val === 'medium') setPoopAmount(5);
+        else if (val === 'large') setPoopAmount(8);
+        else {
+          const num = parseInt(val);
+          setPoopAmount(isNaN(num) ? 5 : num);
+        }
+      } else {
+        setPoopAmount(5);
+      }
+      
+      setPoopColor(initialData.poop_color || '黄色');
+      setPoopConsistency(initialData.poop_consistency || 'normal');
+      setPeeCount(initialData.pee_count || 1);
+      setTemperature(initialData.temperature_celsius || 36.5);
+      setTemperatureLocation(initialData.temperature_location || 'armpit');
+      setHeightCm(initialData.height_cm || 0);
+      setWeightG(initialData.weight_g || 0);
+      setHeadCircumference(initialData.head_circumference_cm || 0);
+      setBabyFoodContent(initialData.baby_food_content || '');
+      setBabyFoodAmount(initialData.baby_food_amount || 'all');
+    }
+  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -297,7 +335,7 @@ export const LogEntryModal = ({
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                     >
                       <option value={0}>なし</option>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map(min => (
+                      {[5, 10, 15, 20, 25, 30].map(min => (
                         <option key={min} value={min}>{min}分</option>
                       ))}
                     </select>

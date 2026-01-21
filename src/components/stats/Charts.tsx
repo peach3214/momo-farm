@@ -55,7 +55,7 @@ export const PoopChart = ({ data }: PoopChartProps) => {
                 style={{ fontSize: '11px' }}
                 tick={{ fill: '#6b7280' }}
                 domain={[0, Math.ceil(maxPoopAmount * 1.2)]}
-                label={{ value: '量', position: 'insideLeft', offset: 10, style: { fontSize: '12px', fill: '#6b7280' } }}
+                width={30}
               />
               <Tooltip 
                 contentStyle={{
@@ -123,7 +123,7 @@ export const PeeChart = ({ data }: PeeChartProps) => {
                 style={{ fontSize: '11px' }}
                 tick={{ fill: '#6b7280' }}
                 domain={[0, Math.ceil(maxPeeCount * 1.2)]}
-                label={{ value: '回', position: 'insideLeft', offset: 10, style: { fontSize: '12px', fill: '#6b7280' } }}
+                width={30}
               />
               <Tooltip 
                 contentStyle={{

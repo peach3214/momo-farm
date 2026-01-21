@@ -48,7 +48,7 @@ export const FeedingChart = ({ data }: FeedingChartProps) => {
                 style={{ fontSize: '11px' }}
                 tick={{ fill: '#6b7280' }}
                 domain={[0, Math.ceil(maxBreastMinutes * 1.2)]}
-                label={{ value: '分', position: 'insideLeft', offset: 10, style: { fontSize: '12px', fill: '#6b7280' } }}
+                width={30}
               />
               <Tooltip 
                 contentStyle={{

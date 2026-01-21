@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { format, subDays, eachDayOfInterval, formatDistanceToNow } from 'date-fns';
+import { format, subDays, eachDayOfInterval } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { BarChart3, Baby, Soup, Droplets, Clock, TrendingUp, TrendingDown } from 'lucide-react';
+import { BarChart3, Baby, Soup, Droplets } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Log } from '../types/database';
 import { FeedingChart } from '../components/stats/FeedingChart';
 import { PoopChart, PeeChart } from '../components/stats/Charts';
+import { EventTimeline } from '../components/stats/EventTimeline';
 
 const TEST_USER_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -87,31 +88,13 @@ export const Statistics = () => {
 
   const totalStats = useMemo(() => {
     const feedingCount = logs.filter(l => l.log_type === 'feeding').length;
-    const breastFeeding = logs.filter(l => l.log_type === 'feeding' && l.feeding_type !== 'bottle');
-    const totalBreastMinutes = breastFeeding.reduce((sum, log) => {
-      return sum + (log.feeding_duration_left_min || 0) + (log.feeding_duration_right_min || 0);
-    }, 0);
-
-    const poopLogs = logs.filter(l => l.log_type === 'poop');
-    const poopCount = poopLogs.length;
-    const totalPoopAmount = poopLogs.reduce((sum, log) => {
-      if (!log.poop_amount) return sum;
-      const val = String(log.poop_amount);
-      if (val === 'small') return sum + 3;
-      if (val === 'medium') return sum + 5;
-      if (val === 'large') return sum + 8;
-      const num = parseInt(val);
-      return sum + (isNaN(num) ? 0 : num);
-    }, 0);
-
+    const poopCount = logs.filter(l => l.log_type === 'poop').length;
     const peeCount = logs.reduce((sum, l) => sum + (l.log_type === 'pee' ? (l.pee_count || 0) : 0), 0);
 
     return {
       feedingCount,
-      breastHours: totalBreastMinutes / 60,
       avgFeedingPerDay: feedingCount / 7,
       poopCount,
-      avgPoopAmount: poopCount > 0 ? totalPoopAmount / poopCount : 0,
       avgPoopPerDay: poopCount / 7,
       peeCount,
       avgPeePerDay: peeCount / 7,
@@ -127,7 +110,7 @@ export const Statistics = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-32 sm:pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 safe-area-inset-top">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
@@ -183,7 +166,10 @@ export const Statistics = () => {
           </div>
         </div>
 
-        {/* Rechartsグラフ */}
+        {/* タイムライン */}
+        <EventTimeline logs={logs} />
+
+        {/* グラフ */}
         <FeedingChart data={dailyData} />
         <PoopChart data={dailyData} />
         <PeeChart data={dailyData} />

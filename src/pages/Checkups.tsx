@@ -1,249 +1,538 @@
-import { useState, useEffect } from 'react';
-import { Plus, Search, Calendar as CalendarIcon } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import { useCheckups } from '../hooks/useCheckups';
-import { useEvents } from '../hooks/useEvents';
-import { CheckupCard } from '../components/checkups/CheckupCard';
-import { CheckupModal } from '../components/checkups/CheckupModal';
-import type { Checkup, CheckupInsert } from '../types/database';
+import { Calendar, Plus, Edit2, Trash2, Weight, Ruler, Baby, ChevronRight, CheckCircle, Circle, Search } from 'lucide-react';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
+
+const CHECKUP_TYPES = [
+  { value: 'newborn', label: '新生児訪問' },
+  { value: '1month', label: '1ヶ月検診' },
+  { value: '3month', label: '3〜4ヶ月検診' },
+  { value: '6month', label: '6〜7ヶ月検診' },
+  { value: '9month', label: '9〜10ヶ月検診' },
+  { value: '1year', label: '1歳検診' },
+  { value: '1.5year', label: '1歳6ヶ月検診' },
+  { value: '3year', label: '3歳検診' },
+  { value: 'custom', label: 'その他' },
+];
 
 export const Checkups = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingCheckup, setEditingCheckup] = useState<Checkup | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
-
   const { checkups, loading, addCheckup, updateCheckup, deleteCheckup } = useCheckups();
-  const { addEvent, updateEvent, deleteEvent, events } = useEvents();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCheckup, setEditingCheckup] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [formData, setFormData] = useState({
+    checkup_date: new Date().toISOString().split('T')[0],
+    checkup_type: '1month',
+    custom_type_name: '',
+    height_cm: '',
+    weight_g: '',
+    head_circumference_cm: '',
+    chest_circumference_cm: '',
+    doctor_comments: '',
+    next_time_notes: '',
+    summary: '',
+    tasks: [] as Array<{ text: string; completed: boolean }>,
+  });
 
-  // 今日の日付
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const filteredCheckups = useMemo(() => {
+    if (!searchQuery) return checkups;
+    const query = searchQuery.toLowerCase();
+    return checkups.filter(checkup => 
+      checkup.summary?.toLowerCase().includes(query) ||
+      checkup.doctor_comments?.toLowerCase().includes(query) ||
+      CHECKUP_TYPES.find(t => t.value === checkup.checkup_type)?.label.includes(searchQuery)
+    );
+  }, [checkups, searchQuery]);
 
-  // 検診を未来と過去に分類
-  const futureCheckups = checkups.filter(c => new Date(c.checkup_date) >= today);
-  const pastCheckups = checkups.filter(c => new Date(c.checkup_date) < today);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const data: any = {
+      checkup_date: formData.checkup_date,
+      checkup_type: formData.checkup_type,
+    };
 
-  // フィルタリング
-  const filterCheckups = (checkupList: Checkup[]) => {
-    return checkupList.filter((checkup) => {
-      // タイプフィルタ
-      if (filterType !== 'all' && checkup.checkup_type !== filterType) {
-        return false;
-      }
+    if (formData.checkup_type === 'custom' && formData.custom_type_name) {
+      data.custom_type_name = formData.custom_type_name;
+    }
 
-      // 検索フィルタ
-      if (searchQuery) {
-        const searchLower = searchQuery.toLowerCase();
-        const checkupTypeName = checkup.checkup_type === 'custom' && checkup.custom_type_name
-          ? checkup.custom_type_name
-          : checkup.checkup_type;
-        
-        return (
-          checkupTypeName.toLowerCase().includes(searchLower) ||
-          checkup.summary?.toLowerCase().includes(searchLower) ||
-          checkup.doctor_comments?.toLowerCase().includes(searchLower)
-        );
-      }
+    if (formData.height_cm) {
+      data.height_cm = parseFloat(formData.height_cm);
+    }
 
-      return true;
-    });
-  };
+    if (formData.weight_g) {
+      data.weight_g = parseFloat(formData.weight_g) * 1000;
+    }
 
-  const filteredFutureCheckups = filterCheckups(futureCheckups).sort(
-    (a, b) => new Date(a.checkup_date).getTime() - new Date(b.checkup_date).getTime()
-  );
+    if (formData.head_circumference_cm) {
+      data.head_circumference_cm = parseFloat(formData.head_circumference_cm);
+    }
 
-  const filteredPastCheckups = filterCheckups(pastCheckups).sort(
-    (a, b) => new Date(b.checkup_date).getTime() - new Date(a.checkup_date).getTime()
-  );
+    if (formData.chest_circumference_cm) {
+      data.chest_circumference_cm = parseFloat(formData.chest_circumference_cm);
+    }
 
-  // 検診追加
-  const handleAdd = () => {
-    setEditingCheckup(null);
-    setModalOpen(true);
-  };
+    if (formData.doctor_comments) {
+      data.doctor_comments = formData.doctor_comments;
+    }
 
-  // 検診編集
-  const handleEdit = (checkup: Checkup) => {
-    setEditingCheckup(checkup);
-    setModalOpen(true);
-  };
+    if (formData.next_time_notes) {
+      data.next_time_notes = formData.next_time_notes;
+    }
 
-  // 検診保存
-  const handleSubmit = async (data: Omit<CheckupInsert, 'user_id'>) => {
+    if (formData.summary) {
+      data.summary = formData.summary;
+    }
+
+    if (formData.tasks.length > 0) {
+      data.tasks = formData.tasks;
+    }
+
     try {
       if (editingCheckup) {
         await updateCheckup(editingCheckup.id, data);
-        
-        // カレンダーのイベントも更新
-        const relatedEvent = events.find(e => 
-          e.event_date === editingCheckup.checkup_date && 
-          e.event_name.includes('検診')
-        );
-        if (relatedEvent) {
-          await updateEvent(relatedEvent.id, {
-            event_name: data.custom_type_name || '検診',
-            event_date: data.checkup_date,
-            category: 'checkup',
-          });
-        }
       } else {
         await addCheckup(data);
-        
-        // カレンダーにイベントも追加
-        await addEvent({
-          event_name: data.custom_type_name || '検診',
-          event_date: data.checkup_date,
-          category: 'checkup',
-          is_relative: false,
-          relative_days: null,
-        });
       }
+
+      setIsModalOpen(false);
+      setEditingCheckup(null);
+      resetForm();
     } catch (error) {
-      console.error('検診保存エラー:', error);
+      console.error('Error saving checkup:', error);
+      alert('保存に失敗しました。もう一度お試しください。');
     }
-    
-    setModalOpen(false);
-    setEditingCheckup(null);
   };
 
-  const checkupTypeOptions = [
-    { value: 'all', label: 'すべて' },
-    { value: 'newborn_visit', label: '新生児訪問' },
-    { value: '1month', label: '1ヶ月検診' },
-    { value: '3month', label: '3ヶ月検診' },
-    { value: '6month', label: '6ヶ月検診' },
-    { value: '9month', label: '9ヶ月検診' },
-    { value: '12month', label: '12ヶ月検診' },
-    { value: '18month', label: '18ヶ月検診' },
-    { value: '36month', label: '3歳児検診' },
-    { value: 'custom', label: 'その他' },
-  ];
+  const resetForm = () => {
+    setFormData({
+      checkup_date: new Date().toISOString().split('T')[0],
+      checkup_type: '1month',
+      custom_type_name: '',
+      height_cm: '',
+      weight_g: '',
+      head_circumference_cm: '',
+      chest_circumference_cm: '',
+      doctor_comments: '',
+      next_time_notes: '',
+      summary: '',
+      tasks: [],
+    });
+  };
+
+  const handleEdit = (checkup: any) => {
+    setEditingCheckup(checkup);
+    setFormData({
+      checkup_date: checkup.checkup_date,
+      checkup_type: checkup.checkup_type,
+      custom_type_name: checkup.custom_type_name || '',
+      height_cm: checkup.height_cm?.toString() || '',
+      weight_g: checkup.weight_g ? (checkup.weight_g / 1000).toString() : '',
+      head_circumference_cm: checkup.head_circumference_cm?.toString() || '',
+      chest_circumference_cm: checkup.chest_circumference_cm?.toString() || '',
+      doctor_comments: checkup.doctor_comments || '',
+      next_time_notes: checkup.next_time_notes || '',
+      summary: checkup.summary || '',
+      tasks: checkup.tasks || [],
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('この検診記録を削除しますか？')) {
+      await deleteCheckup(id);
+    }
+  };
+
+  const addTask = () => {
+    setFormData({
+      ...formData,
+      tasks: [...formData.tasks, { text: '', completed: false }],
+    });
+  };
+
+  const updateTask = (index: number, field: 'text' | 'completed', value: string | boolean) => {
+    const newTasks = [...formData.tasks];
+    newTasks[index] = { ...newTasks[index], [field]: value };
+    setFormData({ ...formData, tasks: newTasks });
+  };
+
+  const removeTask = (index: number) => {
+    setFormData({
+      ...formData,
+      tasks: formData.tasks.filter((_, i) => i !== index),
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-32 sm:pb-24">
-      {/* ヘッダー */}
-      <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 safe-area-inset-top">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              小児検診
-            </h1>
-            <button
-              onClick={handleAdd}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span>検診追加</span>
-            </button>
-          </div>
-
-          {/* 検索とフィルタ */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* 検索 */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="検診を検索..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-              />
-            </div>
-
-            {/* フィルタ */}
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-            >
-              {checkupTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+      <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <Calendar className="w-7 h-7 text-green-600 dark:text-green-400" />
+            検診記録
+          </h1>
+          <button
+            onClick={() => {
+              setEditingCheckup(null);
+              resetForm();
+              setIsModalOpen(true);
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            追加
+          </button>
         </div>
       </header>
 
-      {/* 検診一覧 */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* 検索バー */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="検診記録を検索..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          />
+        </div>
+
+        {/* 検診記録一覧 */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
+              検診記録 ({filteredCheckups.length})
+            </h2>
           </div>
-        ) : (
-          <>
-            {/* 今後の予定 */}
-            {filteredFutureCheckups.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                  <CalendarIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  今後の予定
-                </h2>
-                <div className="grid gap-4">
-                  {filteredFutureCheckups.map((checkup) => (
-                    <CheckupCard
-                      key={checkup.id}
-                      checkup={checkup}
-                      onEdit={() => handleEdit(checkup)}
-                      onDelete={() => deleteCheckup(checkup.id)}
-                      onClick={() => handleEdit(checkup)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* 過去の記録 */}
-            {filteredPastCheckups.length > 0 && (
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-                  過去の記録
-                </h2>
-                <div className="grid gap-4">
-                  {filteredPastCheckups.map((checkup) => (
-                    <CheckupCard
-                      key={checkup.id}
-                      checkup={checkup}
-                      onEdit={() => handleEdit(checkup)}
-                      onDelete={() => deleteCheckup(checkup.id)}
-                      onClick={() => handleEdit(checkup)}
-                    />
-                  ))}
-                </div>
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {filteredCheckups.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                {searchQuery ? '検索結果がありません' : '検診記録がありません'}
               </div>
-            )}
+            ) : (
+              filteredCheckups.map(checkup => {
+                const typeName = checkup.checkup_type === 'custom' 
+                  ? checkup.custom_type_name 
+                  : CHECKUP_TYPES.find(t => t.value === checkup.checkup_type)?.label;
 
-            {/* 空状態 */}
-            {filteredFutureCheckups.length === 0 && filteredPastCheckups.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500 dark:text-gray-400 text-lg mb-2">
-                  {searchQuery || filterType !== 'all'
-                    ? '検索条件に一致する検診がありません'
-                    : 'まだ検診記録がありません'}
-                </p>
-                <p className="text-gray-400 dark:text-gray-500 text-sm">
-                  右上のボタンから検診記録を追加しましょう
-                </p>
-              </div>
+                return (
+                  <div
+                    key={checkup.id}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 cursor-pointer" onClick={() => handleEdit(checkup)}>
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">
+                          {typeName}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {format(new Date(checkup.checkup_date), 'yyyy年M月d日（E）', { locale: ja })}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(checkup);
+                          }}
+                          className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(checkup.id);
+                          }}
+                          className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {(checkup.height_cm || checkup.weight_g || checkup.head_circumference_cm) && (
+                      <div className="flex gap-4 mb-2 text-sm">
+                        {checkup.height_cm && (
+                          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                            <Ruler className="w-4 h-4" />
+                            {checkup.height_cm} cm
+                          </div>
+                        )}
+                        {checkup.weight_g && (
+                          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                            <Weight className="w-4 h-4" />
+                            {(checkup.weight_g / 1000).toFixed(2)} kg
+                          </div>
+                        )}
+                        {checkup.head_circumference_cm && (
+                          <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                            <Baby className="w-4 h-4" />
+                            {checkup.head_circumference_cm} cm
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {checkup.summary && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                        {checkup.summary}
+                      </p>
+                    )}
+
+                    {checkup.tasks && checkup.tasks.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {checkup.tasks.slice(0, 3).map((task: any, idx: number) => (
+                          <div key={idx} className={`text-xs px-2 py-1 rounded ${task.completed ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                            {task.completed ? <CheckCircle className="w-3 h-3 inline mr-1" /> : <Circle className="w-3 h-3 inline mr-1" />}
+                            {task.text.length > 10 ? task.text.slice(0, 10) + '...' : task.text}
+                          </div>
+                        ))}
+                        {checkup.tasks.length > 3 && (
+                          <div className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                            +{checkup.tasks.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
-          </>
-        )}
+          </div>
+        </div>
       </main>
 
-      {/* 検診追加・編集モーダル */}
-      <CheckupModal
-        isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setEditingCheckup(null);
-        }}
-        onSubmit={handleSubmit}
-        initialData={editingCheckup || undefined}
-      />
+      {/* モーダル */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full my-8 p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              {editingCheckup ? '検診記録を編集' : '検診記録を追加'}
+            </h2>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* 基本情報 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    日付 *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.checkup_date}
+                    onChange={(e) => setFormData({ ...formData, checkup_date: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    検診の種類 *
+                  </label>
+                  <select
+                    value={formData.checkup_type}
+                    onChange={(e) => setFormData({ ...formData, checkup_type: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    {CHECKUP_TYPES.map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {formData.checkup_type === 'custom' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    検診名
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.custom_type_name}
+                    onChange={(e) => setFormData({ ...formData, custom_type_name: e.target.value })}
+                    placeholder="例: 2ヶ月検診"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+              )}
+
+              {/* 身体測定 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    身長 (cm)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.height_cm}
+                    onChange={(e) => setFormData({ ...formData, height_cm: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    体重 (kg)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.weight_g}
+                    onChange={(e) => setFormData({ ...formData, weight_g: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    頭囲 (cm)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.head_circumference_cm}
+                    onChange={(e) => setFormData({ ...formData, head_circumference_cm: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    胸囲 (cm)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.chest_circumference_cm}
+                    onChange={(e) => setFormData({ ...formData, chest_circumference_cm: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+              </div>
+
+              {/* 医師のコメント */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  医師のコメント
+                </label>
+                <textarea
+                  value={formData.doctor_comments}
+                  onChange={(e) => setFormData({ ...formData, doctor_comments: e.target.value })}
+                  rows={3}
+                  placeholder="医師から言われたことを記録しましょう"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+
+              {/* タスク */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    今後のタスク
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addTask}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    + 追加
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {formData.tasks.map((task, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={(e) => updateTask(idx, 'completed', e.target.checked)}
+                        className="mt-1"
+                      />
+                      <input
+                        type="text"
+                        value={task.text}
+                        onChange={(e) => updateTask(idx, 'text', e.target.value)}
+                        placeholder="タスクを入力"
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeTask(idx)}
+                        className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 次回に向けて */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  次回に向けて / 気をつけること
+                </label>
+                <textarea
+                  value={formData.next_time_notes}
+                  onChange={(e) => setFormData({ ...formData, next_time_notes: e.target.value })}
+                  rows={2}
+                  placeholder="次回の検診までに気をつけることなど"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+
+              {/* まとめ */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  内容まとめ
+                </label>
+                <textarea
+                  value={formData.summary}
+                  onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                  rows={3}
+                  placeholder="今回の検診の総括やメモ"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingCheckup(null);
+                    resetForm();
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  {editingCheckup ? '更新' : '追加'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

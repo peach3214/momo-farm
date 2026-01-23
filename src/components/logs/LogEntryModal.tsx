@@ -335,7 +335,7 @@ export const LogEntryModal = ({
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                     >
                       <option value={0}>なし</option>
-                      {[5, 10, 15, 20, 25, 30].map(min => (
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(min => (
                         <option key={min} value={min}>{min}分</option>
                       ))}
                     </select>
@@ -350,7 +350,7 @@ export const LogEntryModal = ({
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                     >
                       <option value={0}>なし</option>
-                      {[5, 10, 15, 20, 25, 30].map(min => (
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(min => (
                         <option key={min} value={min}>{min}分</option>
                       ))}
                     </select>

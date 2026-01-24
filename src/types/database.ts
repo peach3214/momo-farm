@@ -46,10 +46,12 @@ export interface ProfileUpdate {
 export type LogType =
   | 'feeding'
   | 'sleep'
+  | 'diaper'
   | 'wake'
   | 'hold'
   | 'poop'
   | 'pee'
+  | 'bath'
   | 'temperature'
   | 'measurement'
   | 'baby_food'

@@ -8,6 +8,7 @@ interface QuickActionsProps {
 const actions = [
   { type: 'feeding' as LogType, icon: Baby, label: '授乳', color: 'from-pink-500 to-rose-500' },
   { type: 'sleep' as LogType, icon: Moon, label: '寝る', color: 'from-indigo-500 to-purple-500' },
+  { type: 'diaper' as LogType, icon: Baby, label: 'おむつ', color: 'from-yellow-500 to-amber-500' },
   { type: 'poop' as LogType, icon: Coffee, label: 'うんち', color: 'from-amber-500 to-orange-500' },
   { type: 'pee' as LogType, icon: Droplets, label: 'しっこ', color: 'from-blue-500 to-cyan-500' },
   { type: 'bath' as LogType, icon: Bath, label: 'お風呂', color: 'from-cyan-500 to-teal-500' },

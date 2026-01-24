@@ -10,6 +10,7 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
+  Bath,
 } from 'lucide-react';
 import { format, addDays, subDays } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -23,10 +24,10 @@ import type { LogType, LogInsert } from '../types/database';
 const quickActions = [
   { icon: Baby, label: '授乳', type: 'feeding' as LogType, color: 'bg-pink-100 text-pink-600 hover:bg-pink-200 dark:bg-pink-900 dark:text-pink-300 dark:hover:bg-pink-800' },
   { icon: Moon, label: '寝る', type: 'sleep' as LogType, color: 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200 dark:bg-indigo-900 dark:text-indigo-300 dark:hover:bg-indigo-800' },
-  { icon: Sun, label: '起きる', type: 'wake' as LogType, color: 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:hover:bg-yellow-800' },
-  { icon: Heart, label: '抱っこ', type: 'hold' as LogType, color: 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800' },
+  { icon: Baby, label: 'おむつ', type: 'diaper' as LogType, color: 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:hover:bg-yellow-800' },
   { icon: Soup, label: 'うんち', type: 'poop' as LogType, color: 'bg-amber-100 text-amber-600 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-300 dark:hover:bg-amber-800' },
   { icon: Droplets, label: 'しっこ', type: 'pee' as LogType, color: 'bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800' },
+  { icon: Bath, label: 'お風呂', type: 'bath' as LogType, color: 'bg-cyan-100 text-cyan-600 hover:bg-cyan-200 dark:bg-cyan-900 dark:text-cyan-300 dark:hover:bg-cyan-800' },
   { icon: Utensils, label: '離乳食', type: 'baby_food' as LogType, color: 'bg-purple-100 text-purple-600 hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800' },
   { icon: FileText, label: 'メモ', type: 'memo' as LogType, color: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700' },
 ];

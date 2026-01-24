@@ -10,6 +10,7 @@ interface EventTimelineProps {
 const logTypeConfig = {
   feeding: { color: '#ec4899', label: '授乳' },
   sleep: { color: '#6366f1', label: '睡眠' },
+  diaper: { color: '#eab308', label: 'おむつ' },
   poop: { color: '#f59e0b', label: 'うんち' },
   pee: { color: '#3b82f6', label: 'しっこ' },
   bath: { color: '#06b6d4', label: 'お風呂' },
@@ -109,7 +110,7 @@ export const EventTimeline = ({ logs }: EventTimelineProps) => {
         {/* タイムライン */}
         <div className="flex gap-2">
           {/* 時刻軸 */}
-          <div className="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 pr-2 h-80">
+          <div className="flex flex-col justify-between text-xs text-gray-500 dark:text-gray-400 pr-2 h-96">
             {[0, 6, 12, 18, 24].map(hour => (
               <div key={hour} className="text-right" style={{ marginTop: hour === 0 ? 0 : -8 }}>
                 {hour}
@@ -132,7 +133,7 @@ export const EventTimeline = ({ logs }: EventTimelineProps) => {
                 </div>
 
                 {/* タイムラインバー */}
-                <div className="flex-1 relative bg-gray-50 dark:bg-gray-900 rounded-lg h-80">
+                <div className="flex-1 relative bg-gray-50 dark:bg-gray-900 rounded-lg h-96">
                   {/* 背景グリッド */}
                   {[0, 25, 50, 75, 100].map(percent => (
                     <div

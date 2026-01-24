@@ -6,6 +6,7 @@ import { Outing } from './pages/Outing';
 import { Settings } from './pages/Settings';
 import { Calendar } from './pages/Calendar';
 import { Checkups } from './pages/Checkups';
+import { Temperature } from './pages/Temperature';
 import { BottomNav } from './components/layout/BottomNav';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path="/outing" element={<Outing />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/checkups" element={<Checkups />} />
+          <Route path="/temperature" element={<Temperature />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
         <BottomNav />

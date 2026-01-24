@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, ChevronRight, Check } from 'lucide-react';
-import { Home, BarChart3, TrendingUp, MapPin, Calendar as CalendarIcon } from 'lucide-react';
+import { Home, BarChart3, TrendingUp, MapPin, Calendar as CalendarIcon, Thermometer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,6 +13,7 @@ const availableTabs = [
   { id: 'outing', path: '/outing', icon: MapPin, label: 'おでかけ' },
   { id: 'calendar', path: '/calendar', icon: CalendarIcon, label: 'カレンダー' },
   { id: 'checkups', path: '/checkups', icon: CalendarIcon, label: '検診' },
+  { id: 'temperature', path: '/temperature', icon: Thermometer, label: '体温' },
 ];
 
 const getUserId = async (): Promise<string> => {

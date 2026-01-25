@@ -8,7 +8,8 @@ import {
   Thermometer, 
   Ruler, 
   Utensils,
-  FileText 
+  FileText,
+  Bath
 } from 'lucide-react';
 import type { Log } from '../../types/database';
 import { formatTime, formatFeedingDuration, formatBottleAmount } from '../../utils/formatters';
@@ -27,6 +28,8 @@ const getLogIcon = (logType: Log['log_type']) => {
     hold: Heart,
     poop: Soup,
     pee: Droplets,
+    diaper: Baby,
+    bath: Bath,
     temperature: Thermometer,
     measurement: Ruler,
     baby_food: Utensils,
@@ -43,6 +46,8 @@ const getLogColor = (logType: Log['log_type']) => {
     hold: 'from-red-500 to-red-600',
     poop: 'from-amber-500 to-amber-600',
     pee: 'from-blue-500 to-blue-600',
+    diaper: 'from-yellow-500 to-amber-500',
+    bath: 'from-cyan-500 to-cyan-600',
     temperature: 'from-orange-500 to-orange-600',
     measurement: 'from-green-500 to-green-600',
     baby_food: 'from-purple-500 to-purple-600',
@@ -59,6 +64,8 @@ const getLineColor = (logType: Log['log_type']) => {
     hold: 'bg-red-300 dark:bg-red-700',
     poop: 'bg-amber-300 dark:bg-amber-700',
     pee: 'bg-blue-300 dark:bg-blue-700',
+    diaper: 'bg-yellow-300 dark:bg-yellow-700',
+    bath: 'bg-cyan-300 dark:bg-cyan-700',
     temperature: 'bg-orange-300 dark:bg-orange-700',
     measurement: 'bg-green-300 dark:bg-green-700',
     baby_food: 'bg-purple-300 dark:bg-purple-700',
@@ -75,6 +82,8 @@ const getLogLabel = (logType: Log['log_type']) => {
     hold: '抱っこ',
     poop: 'うんち',
     pee: 'しっこ',
+    diaper: 'おむつ',
+    bath: 'お風呂',
     temperature: '体温',
     measurement: '身長体重',
     baby_food: '離乳食',

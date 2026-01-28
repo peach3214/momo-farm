@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, BarChart3, TrendingUp, MapPin, Settings, Plus, Calendar as CalendarIcon, Thermometer } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { ShoppingCart, Trophy } from 'lucide-react';
 
 const availableTabs = [
   { id: 'home', path: '/', icon: Home, label: 'ホーム' },
@@ -10,6 +11,8 @@ const availableTabs = [
   { id: 'calendar', path: '/calendar', icon: CalendarIcon, label: 'カレンダー' },
   { id: 'checkups', path: '/checkups', icon: CalendarIcon, label: '検診' },
   { id: 'temperature', path: '/temperature', icon: Thermometer, label: '体温' },
+  { id: 'shopping', path: '/shopping', icon: ShoppingCart, label: 'おかいもの' },
+  { id: 'achievements', path: '/achievements', icon: Trophy, label: '実績' },
 ];
 
 export const BottomNav = () => {

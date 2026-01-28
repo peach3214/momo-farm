@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Baby } from 'lucide-react';
@@ -23,7 +23,7 @@ export const DiaperChart = ({ data }: DiaperChartProps) => {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">おむつ交換（日別）</h2>
       </div>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData}>
+        <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis 
             dataKey="date" 
@@ -40,12 +40,15 @@ export const DiaperChart = ({ data }: DiaperChartProps) => {
               fontSize: '12px',
             }}
           />
-          <Bar 
+          <Line 
+            type="monotone"
             dataKey="おむつ" 
-            fill="#eab308" 
-            radius={[8, 8, 0, 0]}
+            stroke="#eab308" 
+            strokeWidth={2}
+            dot={{ fill: '#eab308', r: 4 }}
+            activeDot={{ r: 6 }}
           />
-        </BarChart>
+        </LineChart>
       </ResponsiveContainer>
     </div>
   );

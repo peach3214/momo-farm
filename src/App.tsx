@@ -7,6 +7,8 @@ import { Settings } from './pages/Settings';
 import { Calendar } from './pages/Calendar';
 import { Checkups } from './pages/Checkups';
 import { Temperature } from './pages/Temperature';
+import { Shopping } from './pages/Shopping';
+import { Achievements } from './pages/Achievements';
 import { BottomNav } from './components/layout/BottomNav';
 
 function App() {
@@ -21,6 +23,8 @@ function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/checkups" element={<Checkups />} />
           <Route path="/temperature" element={<Temperature />} />
+          <Route path="/shopping" element={<Shopping />} />
+          <Route path="/achievements" element={<Achievements />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
         <BottomNav />

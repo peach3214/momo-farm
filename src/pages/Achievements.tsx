@@ -42,6 +42,7 @@ export const Achievements = () => {
     category: 'その他',
     difficulty: 1,
     target_days: null as number | null,
+    unlocked_at: null as string | null,
   });
   const [editForm, setEditForm] = useState({
     title: '',
@@ -50,6 +51,7 @@ export const Achievements = () => {
     category: 'その他',
     difficulty: 1,
     target_days: null as number | null,
+    unlocked_at: null as string | null,
   });
 
   const stats = getStats();
@@ -86,13 +88,14 @@ export const Achievements = () => {
     if (!newAchievement.title.trim()) return;
     
     try {
-      await addAchievement({
+      const achievementData: any = {
         ...newAchievement,
-        is_unlocked: false,
-        unlocked_at: null,
+        is_unlocked: !!newAchievement.unlocked_at,
         prerequisite_id: null,
         sort_order: achievements.length,
-      });
+      };
+      
+      await addAchievement(achievementData);
       setNewAchievement({
         title: '',
         description: '',
@@ -100,6 +103,7 @@ export const Achievements = () => {
         category: 'その他',
         difficulty: 1,
         target_days: null,
+        unlocked_at: null,
       });
       setIsAddingAchievement(false);
     } catch (error) {
@@ -116,12 +120,18 @@ export const Achievements = () => {
       category: achievement.category,
       difficulty: achievement.difficulty,
       target_days: (achievement as any).target_days || null,
+      unlocked_at: achievement.unlocked_at || null,
     });
   };
 
   const handleUpdate = async (id: string) => {
     try {
-      await updateAchievement(id, editForm);
+      const updates: any = { ...editForm };
+      // 達成日が入力されていたら自動的に解除状態に
+      if (editForm.unlocked_at) {
+        updates.is_unlocked = true;
+      }
+      await updateAchievement(id, updates);
       setEditingAchievement(null);
     } catch (error) {
       alert('更新に失敗しました');
@@ -327,6 +337,14 @@ export const Achievements = () => {
                                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                               />
                             </div>
+
+                            <input
+                              type="date"
+                              value={editForm.unlocked_at ? editForm.unlocked_at.split('T')[0] : ''}
+                              onChange={(e) => setEditForm({ ...editForm, unlocked_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                              placeholder="達成日"
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            />
                             
                             <div className="flex gap-2">
                               <button
@@ -489,6 +507,14 @@ export const Achievements = () => {
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
+
+            <input
+              type="date"
+              value={newAchievement.unlocked_at ? newAchievement.unlocked_at.split('T')[0] : ''}
+              onChange={(e) => setNewAchievement({ ...newAchievement, unlocked_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+              placeholder="達成日（任意）"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
             
             <div className="flex gap-2">
               <button

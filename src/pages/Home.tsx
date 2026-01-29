@@ -17,9 +17,10 @@ import { ja } from 'date-fns/locale';
 import { useLogs } from '../hooks/useLogs';
 import { QuickActionButton } from '../components/logs/QuickActionButton';
 import { TimelineItem } from '../components/logs/TimelineItem';
+import { CompactTimelineItem } from '../components/logs/CompactTimelineItem';
 import { LogEntryModal } from '../components/logs/LogEntryModal';
 import { DailySummary } from '../components/logs/DailySummary';
-import type { LogType, LogInsert } from '../types/database';
+import type { LogType, LogInsert, Log } from '../types/database';
 
 const quickActions = [
   { icon: Baby, label: '授乳', type: 'feeding' as LogType, color: 'bg-pink-100 text-pink-600 hover:bg-pink-200 dark:bg-pink-900 dark:text-pink-300 dark:hover:bg-pink-800' },
@@ -32,13 +33,41 @@ const quickActions = [
   { icon: FileText, label: 'メモ', type: 'memo' as LogType, color: 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700' },
 ];
 
+// 時刻を丸める（分単位）
+const roundToMinute = (dateStr: string) => {
+  const date = new Date(dateStr);
+  date.setSeconds(0, 0);
+  return date.toISOString();
+};
+
+// ログを時刻でグループ化
+const groupLogsByTime = (logs: Log[]) => {
+  const grouped: Record<string, { time: string; logs: Log[] }> = {};
+  
+  logs.forEach(log => {
+    const timeKey = roundToMinute(log.logged_at);
+    if (!grouped[timeKey]) {
+      grouped[timeKey] = {
+        time: timeKey,
+        logs: [],
+      };
+    }
+    grouped[timeKey].logs.push(log);
+  });
+  
+  // 時刻順にソート（古い順 = 昇順）
+  return Object.values(grouped).sort((a, b) => 
+    new Date(a.time).getTime() - new Date(b.time).getTime()
+  );
+};
+
 export const Home = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedLogType, setSelectedLogType] = useState<LogType>('feeding');
   const [editingLog, setEditingLog] = useState<string | null>(null);
 
-  const { logs, loading, summary, addLog, updateLog, deleteLog, refetch } = useLogs({
+  const { logs, loading, summary, addLog, updateLog, deleteLog } = useLogs({
     date: selectedDate,
     enableRealtime: true,
   });
@@ -87,6 +116,9 @@ export const Home = () => {
   };
 
   const isToday = selectedDate.toDateString() === new Date().toDateString();
+  
+  // ログをグループ化
+  const groupedLogs = groupLogsByTime(logs);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-32 sm:pb-24">
@@ -176,15 +208,72 @@ export const Home = () => {
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {logs.map((log) => (
-                  <TimelineItem
-                    key={log.id}
-                    log={log}
-                    onEdit={() => handleEdit(log.id)}
-                    onDelete={() => handleDelete(log.id)}
-                  />
-                ))}
+              <div className="space-y-0">
+                {groupedLogs.map((group) => {
+                  const diaperLogs = group.logs.filter(l => l.log_type === 'diaper');
+                  const otherLogs = group.logs.filter(l => l.log_type !== 'diaper');
+                  
+                  return (
+                    <div key={group.time} className="flex gap-3 pb-6">
+                      {/* 左側：時刻（統一） */}
+                      <div className="flex-shrink-0 w-14 pt-0.5">
+                        <time className="text-sm font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+                          {format(new Date(group.time), 'HH:mm')}
+                        </time>
+                      </div>
+
+                      {/* 中央：タイムライン（統一） */}
+                      <div className="flex flex-col items-center flex-shrink-0">
+                        <div className="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-600 mt-1"></div>
+                        <div className="w-0.5 flex-1 bg-gray-300 dark:bg-gray-700 mt-1"></div>
+                      </div>
+
+                      {/* 右側：コンテンツエリア（統一） */}
+                      {diaperLogs.length > 0 && otherLogs.length > 0 ? (
+                        // おむつ + その他 → 2列グリッド
+                        <div className="flex-1 grid grid-cols-2 gap-4 min-w-0">
+                          {/* 左列：その他のログ */}
+                          <div className="space-y-3 min-w-0">
+                            {otherLogs.map(log => (
+                              <CompactTimelineItem
+                                key={log.id}
+                                log={log}
+                                onEdit={() => handleEdit(log.id)}
+                                onDelete={() => handleDelete(log.id)}
+                              />
+                            ))}
+                          </div>
+
+                          {/* 右列：おむつ */}
+                          <div className="space-y-3 min-w-0">
+                            {diaperLogs.map(log => (
+                              <CompactTimelineItem
+                                key={log.id}
+                                log={log}
+                                onEdit={() => handleEdit(log.id)}
+                                onDelete={() => handleDelete(log.id)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        // おむつなし or おむつのみ → 1列表示（でもレイアウトは統一）
+                        <div className="flex-1">
+                          <div className="space-y-3">
+                            {group.logs.map(log => (
+                              <CompactTimelineItem
+                                key={log.id}
+                                log={log}
+                                onEdit={() => handleEdit(log.id)}
+                                onDelete={() => handleDelete(log.id)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </>

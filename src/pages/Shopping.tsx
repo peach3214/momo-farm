@@ -3,15 +3,17 @@ import { useShopping } from '../hooks/useShopping';
 import { ShoppingCart, Plus, ChevronDown, ChevronRight, ExternalLink, Trash2, Edit, Check, X } from 'lucide-react';
 
 export const Shopping = () => {
-  const { categories, items, loading, addCategory, addItem, updateItem, deleteItem, togglePurchased } = useShopping();
+  const { categories, items, loading, addCategory, updateCategory, deleteCategory, addItem, updateItem, deleteItem, togglePurchased } = useShopping();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isAddingItem, setIsAddingItem] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryIcon, setNewCategoryIcon] = useState('📦');
   const [newItem, setNewItem] = useState({ title: '', url: '', memo: '' });
   const [editForm, setEditForm] = useState({ title: '', url: '', memo: '' });
+  const [categoryEditForm, setCategoryEditForm] = useState({ name: '', icon: '' });
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => {
@@ -85,6 +87,26 @@ export const Shopping = () => {
     }
   };
 
+  const startEditingCategory = (category: any) => {
+    setEditingCategory(category.id);
+    setCategoryEditForm({
+      name: category.name,
+      icon: category.icon || '📦',
+    });
+  };
+
+  const handleUpdateCategory = async (categoryId: string) => {
+    try {
+      await updateCategory(categoryId, {
+        name: categoryEditForm.name,
+        icon: categoryEditForm.icon,
+      });
+      setEditingCategory(null);
+    } catch (error) {
+      alert('カテゴリの更新に失敗しました');
+    }
+  };
+
   const getItemsByCategory = (categoryId: string) => {
     return items.filter(item => item.category_id === categoryId);
   };
@@ -119,38 +141,94 @@ export const Shopping = () => {
           return (
             <div key={category.id} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-3xl shadow-xl border border-blue-100 dark:border-gray-700 overflow-hidden">
               {/* カテゴリヘッダー */}
-              <button
-                onClick={() => toggleCategory(category.id)}
-                className="w-full p-6 flex items-center justify-between hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {isExpanded ? (
-                    <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  ) : (
-                    <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  )}
-                  <span className="text-3xl">{category.icon}</span>
-                  <div className="text-left">
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                      {category.name}
-                    </h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {purchasedCount}/{totalCount} 完了
-                    </p>
+              {editingCategory === category.id ? (
+                // カテゴリ編集モード
+                <div className="p-6 bg-blue-50 dark:bg-blue-900/20 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      placeholder="絵文字"
+                      value={categoryEditForm.icon}
+                      onChange={(e) => setCategoryEditForm({ ...categoryEditForm, icon: e.target.value })}
+                      maxLength={2}
+                      className="w-16 px-3 py-2 text-center text-2xl border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700"
+                    />
+                    <input
+                      type="text"
+                      placeholder="カテゴリ名"
+                      value={categoryEditForm.name}
+                      onChange={(e) => setCategoryEditForm({ ...categoryEditForm, name: e.target.value })}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleUpdateCategory(category.id)}
+                      className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:from-blue-600 hover:to-indigo-600 transition-all"
+                    >
+                      保存
+                    </button>
+                    <button
+                      onClick={() => setEditingCategory(null)}
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  {totalCount > 0 && (
-                    <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all"
-                        style={{ width: `${(purchasedCount / totalCount) * 100}%` }}
-                      />
+              ) : (
+                // カテゴリ表示モード
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={() => toggleCategory(category.id)}
+                      className="flex items-center gap-3 flex-1 hover:opacity-75 transition-opacity"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      )}
+                      <span className="text-3xl">{category.icon}</span>
+                      <div className="text-left">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                          {category.name}
+                        </h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {purchasedCount}/{totalCount} 完了
+                        </p>
+                      </div>
+                    </button>
+                    
+                    <div className="flex items-center gap-2">
+                      {totalCount > 0 && (
+                        <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all"
+                            style={{ width: `${(purchasedCount / totalCount) * 100}%` }}
+                          />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => startEditingCategory(category)}
+                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm('このカテゴリと関連する商品を全て削除しますか？')) {
+                            deleteCategory(category.id);
+                          }
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
-              </button>
+              )}
 
               {/* カテゴリアイテム */}
               {isExpanded && (

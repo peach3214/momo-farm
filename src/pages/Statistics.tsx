@@ -59,9 +59,17 @@ export const Statistics = () => {
 
       const feedingLogs = dayLogs.filter(l => l.log_type === 'feeding');
       const breastFeeding = feedingLogs.filter(l => l.feeding_type !== 'bottle');
-      const totalBreastMinutes = breastFeeding.reduce((sum, log) => {
-        return sum + (log.feeding_duration_left_min || 0) + (log.feeding_duration_right_min || 0);
+      
+      // 左右別々に集計
+      const totalLeftMinutes = breastFeeding.reduce((sum, log) => {
+        return sum + (log.feeding_duration_left_min || 0);
       }, 0);
+      
+      const totalRightMinutes = breastFeeding.reduce((sum, log) => {
+        return sum + (log.feeding_duration_right_min || 0);
+      }, 0);
+      
+      const totalBreastMinutes = totalLeftMinutes + totalRightMinutes;
 
       const poopLogs = dayLogs.filter(l => l.log_type === 'poop');
       const totalPoopAmount = poopLogs.reduce((sum, log) => {
@@ -80,6 +88,8 @@ export const Statistics = () => {
       return {
         date: format(date, 'yyyy-MM-dd'),
         breastMinutes: totalBreastMinutes,
+        leftMinutes: totalLeftMinutes,
+        rightMinutes: totalRightMinutes,
         feedingCount: feedingLogs.length,
         poopAmount: totalPoopAmount,
         poopCount: poopLogs.length,

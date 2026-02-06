@@ -1,10 +1,12 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Baby } from 'lucide-react';
 
 interface FeedingChartProps {
   data: Array<{
     date: string;
     breastMinutes: number;
+    leftMinutes: number;
+    rightMinutes: number;
     feedingCount: number;
   }>;
 }
@@ -12,22 +14,30 @@ interface FeedingChartProps {
 export const FeedingChart = ({ data }: FeedingChartProps) => {
   const chartData = data.map(d => ({
     date: d.date.split('-')[2],
-    breastMinutes: d.breastMinutes,
+    left: d.leftMinutes,
+    right: d.rightMinutes,
   }));
 
-  const maxBreastMinutes = Math.max(...chartData.map(d => d.breastMinutes), 1);
+  const maxMinutes = Math.max(
+    ...chartData.map(d => Math.max(d.left, d.right)),
+    1
+  );
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="p-4 pb-2 border-b border-gray-100 dark:border-gray-700">
         <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <Baby className="w-4.5 h-4.5 text-pink-600 dark:text-pink-400" />
-          授乳の推移
+          授乳の推移（左右別）
         </h2>
         <div className="flex gap-4 text-xs text-gray-600 dark:text-gray-400 mt-2">
           <div className="flex items-center gap-1.5">
-            <div className="w-6 h-0.5 bg-pink-600"></div>
-            <span>母乳時間</span>
+            <div className="w-6 h-0.5 bg-blue-500"></div>
+            <span>左側（分）</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-0.5 bg-pink-500"></div>
+            <span>右側（分）</span>
           </div>
         </div>
       </div>
@@ -47,7 +57,7 @@ export const FeedingChart = ({ data }: FeedingChartProps) => {
                 stroke="#6b7280"
                 style={{ fontSize: '11px' }}
                 tick={{ fill: '#6b7280' }}
-                domain={[0, Math.ceil(maxBreastMinutes * 1.2)]}
+                domain={[0, Math.ceil(maxMinutes * 1.2)]}
                 width={30}
               />
               <Tooltip 
@@ -59,15 +69,32 @@ export const FeedingChart = ({ data }: FeedingChartProps) => {
                   padding: '8px 12px'
                 }}
                 labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
+                formatter={(value: number, name: string) => [
+                  `${value}分`,
+                  name === 'left' ? '左側' : '右側'
+                ]}
+              />
+              <Legend 
+                wrapperStyle={{ fontSize: '12px' }}
+                formatter={(value) => value === 'left' ? '左側（分）' : '右側（分）'}
               />
               <Line 
                 type="monotone" 
-                dataKey="breastMinutes" 
+                dataKey="left" 
+                stroke="#3b82f6" 
+                strokeWidth={3}
+                dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: 'white' }}
+                activeDot={{ r: 6 }}
+                name="left"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="right" 
                 stroke="#ec4899" 
                 strokeWidth={3}
                 dot={{ r: 4, fill: '#ec4899', strokeWidth: 2, stroke: 'white' }}
                 activeDot={{ r: 6 }}
-                name="母乳時間（分）"
+                name="right"
               />
             </LineChart>
           </ResponsiveContainer>

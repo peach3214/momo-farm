@@ -76,7 +76,7 @@ export const FeedingChart = ({ data }: FeedingChartProps) => {
               />
               <Legend 
                 wrapperStyle={{ fontSize: '12px' }}
-                formatter={(value) => value === 'left' ? '左側（分）' : '右側（分）'}
+                formatter={(value: string) => value === 'left' ? '左側（分）' : '右側（分）'}
               />
               <Line 
                 type="monotone" 

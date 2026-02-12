@@ -10,6 +10,33 @@ import { ja } from 'date-fns/locale';
 import { Baby, Moon, Coffee, Droplets, Bath, UtensilsCrossed, Edit2, Trash2 } from 'lucide-react';
 import type { LogType, LogInsert } from '../types/database';
 
+import { FeedingTimer } from '../components/logs/FeedingTimer';
+
+// state
+const [showFeedingTimer, setShowFeedingTimer] = useState(false);
+
+// ボタン
+<button onClick={() => setShowFeedingTimer(true)}>
+  ⏱️ 授乳タイマー
+</button>
+
+// タイマー
+{showFeedingTimer && (
+  <FeedingTimer
+    onSave={(left, right) => {
+      addLog({
+        log_type: 'feeding',
+        feeding_type: 'breast',
+        feeding_duration_left_min: left,
+        feeding_duration_right_min: right,
+        logged_at: new Date().toISOString(),
+      });
+      setShowFeedingTimer(false);
+    }}
+    onCancel={() => setShowFeedingTimer(false)}
+  />
+)}
+
 const logTypeConfig = {
   feeding: { icon: Baby, color: 'bg-pink-500', label: '授乳' },
   sleep: { icon: Moon, color: 'bg-indigo-500', label: '睡眠' },

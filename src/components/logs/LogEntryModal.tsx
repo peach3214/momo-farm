@@ -18,6 +18,8 @@ const logTypeLabels: Record<LogType, string> = {
   hold: '抱っこ',
   poop: 'うんち',
   pee: 'しっこ',
+  diaper: 'おむつ',
+  bath: 'お風呂',
   temperature: '体温',
   measurement: '身長体重',
   baby_food: '離乳食',
@@ -32,8 +34,6 @@ export const LogEntryModal = ({
   initialData,
 }: LogEntryModalProps) => {
   const [loading, setLoading] = useState(false);
-  
-  // ★ 修正点1: タイマーの表示状態をコンポーネント内部に移動
   const [showTimer, setShowTimer] = useState(false);
   
   // JST（Tokyo時間）で現在時刻を取得
@@ -84,6 +84,7 @@ export const LogEntryModal = ({
     (() => {
       if (initialData?.poop_amount) {
         const val = String(initialData.poop_amount);
+        // 既存の文字列データを数値に変換
         if (val === 'small') return 3;
         if (val === 'medium') return 5;
         if (val === 'large') return 8;
@@ -124,6 +125,7 @@ export const LogEntryModal = ({
     initialData?.baby_food_amount || 'all'
   );
 
+  // initialDataが変更されたら状態を更新
   useEffect(() => {
     if (initialData) {
       setLoggedAt(initialData.logged_at ? getJSTDateTimeString(new Date(initialData.logged_at)) : getJSTDateTimeString());
@@ -199,17 +201,10 @@ export const LogEntryModal = ({
           break;
 
         case 'poop':
-          let poopAmountValue: string;
-          if (poopAmount <= 3) {
-            poopAmountValue = 'small';
-          } else if (poopAmount >= 7) {
-            poopAmountValue = 'large';
-          } else {
-            poopAmountValue = 'medium';
-          }
-          
+        case 'diaper':
+          // 1-10の数値をそのまま保存
           specificData = {
-            poop_amount: poopAmountValue as any,
+            poop_amount: poopAmount,
             poop_color: poopColor,
             poop_consistency: poopConsistency as any,
           };
@@ -232,7 +227,8 @@ export const LogEntryModal = ({
           specificData = {
             height_cm: heightCm > 0 ? heightCm : undefined,
             weight_g: weightG > 0 ? weightG : undefined,
-            head_circumference_cm: headCircumference > 0 ? headCircumference : undefined,
+            head_circumference_cm:
+              headCircumference > 0 ? headCircumference : undefined,
           };
           break;
 
@@ -258,19 +254,7 @@ export const LogEntryModal = ({
 
   return (
     <>
-      {/* ★ 修正点2: タイマーモーダルを適切な位置に配置し、State名(setLeftMin等)を修正 */}
-      {showTimer && (
-        <FeedingTimer
-          onSave={(leftMinutes, rightMinutes) => {
-            setLeftMin(leftMinutes);
-            setRightMin(rightMinutes);
-            setShowTimer(false);
-          }}
-          onCancel={() => setShowTimer(false)}
-        />
-      )}
-
-      <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
         {/* オーバーレイ */}
         <div
           className="absolute inset-0 bg-black bg-opacity-50"
@@ -278,9 +262,9 @@ export const LogEntryModal = ({
         />
 
         {/* モーダルコンテンツ */}
-        <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-xl max-h-[90vh] overflow-y-auto mx-auto z-60">
+        <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl shadow-xl max-h-[90vh] overflow-y-auto mx-auto">
           {/* ヘッダー */}
-          <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 flex items-center justify-between z-40">
+          <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 flex items-center justify-between z-10">
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
               {logTypeLabels[logType]}
             </h2>
@@ -336,9 +320,9 @@ export const LogEntryModal = ({
                   </button>
                 </div>
 
-                {feedingType === 'breast' ? (
-                  <div className="space-y-4">
-                    {/* ★ 修正点3: タイマーボタンを母乳選択時用のブロック内に配置 */}
+                {feedingType === 'breast' && (
+                  <>
+                    {/* タイマーボタン */}
                     <button
                       type="button"
                       onClick={() => setShowTimer(true)}
@@ -358,7 +342,7 @@ export const LogEntryModal = ({
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <option value={0}>なし</option>
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(min => (
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(min => (
                             <option key={min} value={min}>{min}分</option>
                           ))}
                         </select>
@@ -373,14 +357,16 @@ export const LogEntryModal = ({
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <option value={0}>なし</option>
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(min => (
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(min => (
                             <option key={min} value={min}>{min}分</option>
                           ))}
                         </select>
                       </div>
                     </div>
-                  </div>
-                ) : (
+                  </>
+                )}
+
+                {feedingType === 'bottle' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       量（ml）
@@ -399,7 +385,6 @@ export const LogEntryModal = ({
               </div>
             )}
 
-            {/* 睡眠・抱っこ */}
             {(logType === 'sleep' || logType === 'hold') && (
               <div className="space-y-4">
                 <div>
@@ -428,8 +413,7 @@ export const LogEntryModal = ({
               </div>
             )}
 
-            {/* うんち */}
-            {logType === 'poop' && (
+            {(logType === 'poop' || logType === 'diaper') && (
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -475,7 +459,6 @@ export const LogEntryModal = ({
               </div>
             )}
 
-            {/* しっこ */}
             {logType === 'pee' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -503,7 +486,6 @@ export const LogEntryModal = ({
               </div>
             )}
 
-            {/* 体温 */}
             {logType === 'temperature' && (
               <div className="space-y-4">
                 <div>
@@ -539,7 +521,6 @@ export const LogEntryModal = ({
               </div>
             )}
 
-            {/* 身長体重 */}
             {logType === 'measurement' && (
               <div className="space-y-4">
                 <div>
@@ -587,7 +568,6 @@ export const LogEntryModal = ({
               </div>
             )}
 
-            {/* 離乳食 */}
             {logType === 'baby_food' && (
               <div className="space-y-4">
                 <div>
@@ -635,7 +615,7 @@ export const LogEntryModal = ({
             </div>
 
             {/* ボタン */}
-            <div className="flex gap-3 pt-4 pb-24 sm:pb-0">
+            <div className="flex gap-3 pt-4">
               <button
                 type="button"
                 onClick={onClose}
@@ -654,6 +634,18 @@ export const LogEntryModal = ({
           </form>
         </div>
       </div>
+
+      {/* タイマーモーダル */}
+      {showTimer && (
+        <FeedingTimer
+          onSave={(leftMinutes, rightMinutes) => {
+            setLeftMin(leftMinutes);
+            setRightMin(rightMinutes);
+            setShowTimer(false);
+          }}
+          onCancel={() => setShowTimer(false)}
+        />
+      )}
     </>
   );
 };

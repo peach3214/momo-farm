@@ -201,13 +201,17 @@ export const LogEntryModal = ({
           break;
 
         case 'poop':
-        case 'diaper':
-          // 1-10の数値をそのまま保存
+          // うんちの詳細を保存
           specificData = {
             poop_amount: poopAmount,
             poop_color: poopColor,
             poop_consistency: poopConsistency as any,
           };
+          break;
+
+        case 'diaper':
+          // おむつ交換は追加情報なし（日時のみ記録）
+          specificData = {};
           break;
 
         case 'pee':
@@ -342,7 +346,7 @@ export const LogEntryModal = ({
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <option value={0}>なし</option>
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(min => (
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(min => (
                             <option key={min} value={min}>{min}分</option>
                           ))}
                         </select>
@@ -357,7 +361,7 @@ export const LogEntryModal = ({
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <option value={0}>なし</option>
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(min => (
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(min => (
                             <option key={min} value={min}>{min}分</option>
                           ))}
                         </select>
@@ -413,7 +417,7 @@ export const LogEntryModal = ({
               </div>
             )}
 
-            {(logType === 'poop' || logType === 'diaper') && (
+            {logType === 'poop' && (
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -455,6 +459,20 @@ export const LogEntryModal = ({
                     <option value="normal">普通</option>
                     <option value="hard">硬い</option>
                   </select>
+                </div>
+              </div>
+            )}
+
+            {logType === 'diaper' && (
+              <div className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-2xl border-2 border-yellow-200 dark:border-yellow-800">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">👶</div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    おむつ交換
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    おむつを交換したことを記録します
+                  </p>
                 </div>
               </div>
             )}

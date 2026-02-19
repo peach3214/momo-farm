@@ -58,10 +58,10 @@ export const LogEntryModal = ({
     initialData?.feeding_type === 'bottle' ? 'bottle' : 'breast'
   );
   const [leftMin, setLeftMin] = useState(
-    initialData?.feeding_duration_left_min || 10
+    initialData?.feeding_duration_left_min || 3
   );
   const [rightMin, setRightMin] = useState(
-    initialData?.feeding_duration_right_min || 10
+    initialData?.feeding_duration_right_min || 3
   );
   const [bottleAmount, setBottleAmount] = useState(
     initialData?.feeding_amount_ml || 0

@@ -1,12 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAchievements, Achievement } from '../hooks/useAchievements';
-import { Trophy, Plus, Lock, Star, Calendar, Edit, Trash2, Check, X, ChevronDown, ChevronRight, Sparkles, Target } from 'lucide-react';
+import { Trophy, Plus, Star, Calendar, Edit, Trash2, Check, X, ChevronDown, ChevronRight, Sparkles, Target, HelpCircle, Settings } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
-const BIRTH_DATE = new Date('2025-12-03'); // 誕生日
+const BIRTH_DATE = new Date('2025-12-04');
 
-// 生後日数を計算
 const calculateAge = () => {
   const today = new Date();
   const days = differenceInDays(today, BIRTH_DATE) + 1;
@@ -21,8 +20,10 @@ const calculateAge = () => {
   };
 };
 
-// カテゴリの色設定
-const CATEGORY_COLORS: Record<string, { gradient: string; icon: string }> = {
+// LocalStorageでカテゴリ設定を保存
+const STORAGE_KEY = 'achievement_categories';
+
+const DEFAULT_CATEGORIES: Record<string, { gradient: string; icon: string }> = {
   '成長': { gradient: 'from-green-500 to-emerald-500', icon: '🌱' },
   '予防接種': { gradient: 'from-blue-500 to-cyan-500', icon: '💉' },
   'イベント': { gradient: 'from-pink-500 to-rose-500', icon: '🎉' },
@@ -31,22 +32,43 @@ const CATEGORY_COLORS: Record<string, { gradient: string; icon: string }> = {
   'その他': { gradient: 'from-gray-500 to-slate-500', icon: '⭐' },
 };
 
+const GRADIENT_OPTIONS = [
+  { name: '紫→ピンク', value: 'from-purple-500 to-pink-500' },
+  { name: '緑→エメラルド', value: 'from-green-500 to-emerald-500' },
+  { name: '青→シアン', value: 'from-blue-500 to-cyan-500' },
+  { name: 'ピンク→ローズ', value: 'from-pink-500 to-rose-500' },
+  { name: 'オレンジ→アンバー', value: 'from-orange-500 to-amber-500' },
+  { name: 'インディゴ→パープル', value: 'from-indigo-500 to-purple-500' },
+  { name: '赤→オレンジ', value: 'from-red-500 to-orange-500' },
+  { name: 'イエロー→グリーン', value: 'from-yellow-500 to-green-500' },
+];
+
 export const Achievements = () => {
   const { achievements, loading, addAchievement, unlockAchievement, updateAchievement, deleteAchievement } = useAchievements();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
   const [isAddingAchievement, setIsAddingAchievement] = useState(false);
-  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isManagingCategories, setIsManagingCategories] = useState(false);
   const [editingAchievement, setEditingAchievement] = useState<string | null>(null);
-  const [newCategory, setNewCategory] = useState({ name: '', icon: '⭐' });
+  
+  // カテゴリ設定をLocalStorageから読み込み
+  const [categoryColors, setCategoryColors] = useState<Record<string, { gradient: string; icon: string }>>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
+  });
+
+  // カテゴリ設定を保存
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(categoryColors));
+  }, [categoryColors]);
   
   const [newAchievement, setNewAchievement] = useState({
     title: '',
     description: '',
     icon: '🏆',
     category: '成長',
-    series: '', // シリーズ名（例: "生後日数"）
-    stage: 1, // 段階（1, 2, 3...）
+    series: '',
+    stage: 1,
     target_days: null as number | null,
     unlocked_at: null as string | null,
   });
@@ -62,15 +84,20 @@ export const Achievements = () => {
     unlocked_at: null as string | null,
   });
 
+  const [newCategory, setNewCategory] = useState({ 
+    name: '', 
+    icon: '⭐', 
+    gradient: 'from-purple-500 to-pink-500' 
+  });
+
   const age = calculateAge();
 
-  // カテゴリ一覧を取得
   const categories = useMemo(() => {
     const cats = new Set(achievements.map(a => a.category));
+    Object.keys(categoryColors).forEach(cat => cats.add(cat));
     return Array.from(cats);
-  }, [achievements]);
+  }, [achievements, categoryColors]);
 
-  // シリーズごとにグループ化
   const achievementsBySeries = useMemo(() => {
     const filtered = selectedCategory
       ? achievements.filter(a => a.category === selectedCategory)
@@ -86,15 +113,13 @@ export const Achievements = () => {
       grouped.get(series)!.push(achievement);
     });
 
-    // 各シリーズ内でstageでソート
-    grouped.forEach((items, key) => {
+    grouped.forEach((items) => {
       items.sort((a, b) => (a.stage || 0) - (b.stage || 0));
     });
 
     return grouped;
   }, [achievements, selectedCategory]);
 
-  // 統計情報
   const stats = useMemo(() => {
     const total = achievements.length;
     const unlocked = achievements.filter(a => a.is_unlocked).length;
@@ -118,7 +143,10 @@ export const Achievements = () => {
   };
 
   const handleAddAchievement = async () => {
-    if (!newAchievement.title.trim()) return;
+    if (!newAchievement.title.trim()) {
+      alert('タイトルを入力してください');
+      return;
+    }
 
     await addAchievement({
       title: newAchievement.title,
@@ -181,11 +209,31 @@ export const Achievements = () => {
   };
 
   const addNewCategory = () => {
-    if (!newCategory.name.trim()) return;
+    if (!newCategory.name.trim()) {
+      alert('カテゴリ名を入力してください');
+      return;
+    }
     
-    // カテゴリをCATEGORY_COLORSに追加（実際のアプリでは永続化が必要）
-    setNewCategory({ name: '', icon: '⭐' });
-    setIsAddingCategory(false);
+    const updated = {
+      ...categoryColors,
+      [newCategory.name]: {
+        gradient: newCategory.gradient,
+        icon: newCategory.icon,
+      },
+    };
+    setCategoryColors(updated);
+    setNewCategory({ name: '', icon: '⭐', gradient: 'from-purple-500 to-pink-500' });
+  };
+
+  const deleteCategory = (categoryName: string) => {
+    if (achievements.some(a => a.category === categoryName)) {
+      alert('このカテゴリには実績が存在するため削除できません');
+      return;
+    }
+    
+    const updated = { ...categoryColors };
+    delete updated[categoryName];
+    setCategoryColors(updated);
   };
 
   if (loading) {
@@ -198,7 +246,6 @@ export const Achievements = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-800 pb-24">
-      {/* ヘッダー */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-sm border-b border-purple-100 dark:border-gray-700">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -206,13 +253,22 @@ export const Achievements = () => {
               <Trophy className="w-7 h-7 text-purple-600" />
               実績
             </h1>
-            <button
-              onClick={() => setIsAddingAchievement(true)}
-              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              追加
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsManagingCategories(true)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all flex items-center gap-2"
+              >
+                <Settings className="w-5 h-5" />
+                カテゴリ管理
+              </button>
+              <button
+                onClick={() => setIsAddingAchievement(true)}
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                実績を追加
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -244,7 +300,6 @@ export const Achievements = () => {
             </span>
           </div>
           
-          {/* プログレスバー */}
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-4">
             <div
               className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500"
@@ -270,7 +325,7 @@ export const Achievements = () => {
             すべて
           </button>
           {categories.map(category => {
-            const config = CATEGORY_COLORS[category] || CATEGORY_COLORS['その他'];
+            const config = categoryColors[category] || { gradient: 'from-gray-500 to-slate-500', icon: '⭐' };
             const catStats = stats.byCategory.find(s => s.category === category);
             return (
               <button
@@ -292,12 +347,6 @@ export const Achievements = () => {
               </button>
             );
           })}
-          <button
-            onClick={() => setIsAddingCategory(true)}
-            className="px-4 py-2 rounded-xl font-medium whitespace-nowrap bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 border border-dashed border-gray-400 dark:border-gray-600 hover:border-purple-500 transition-all"
-          >
-            <Plus className="w-4 h-4 inline" /> カテゴリ追加
-          </button>
         </div>
 
         {/* シリーズ別実績リスト */}
@@ -313,7 +362,6 @@ export const Achievements = () => {
                 key={series}
                 className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-sm border border-purple-100 dark:border-gray-700 overflow-hidden"
               >
-                {/* シリーズヘッダー */}
                 <button
                   onClick={() => toggleSeries(series)}
                   className="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -336,7 +384,6 @@ export const Achievements = () => {
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    {/* プログレスリング */}
                     <div className="relative w-12 h-12">
                       <svg className="transform -rotate-90" width="48" height="48">
                         <circle
@@ -368,7 +415,6 @@ export const Achievements = () => {
                   </div>
                 </button>
 
-                {/* 実績リスト */}
                 {isExpanded && (
                   <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-3">
                     {items.map((achievement, index) => {
@@ -388,21 +434,20 @@ export const Achievements = () => {
                           }`}
                         >
                           {isEditing ? (
-                            // 編集モード
                             <div className="space-y-3">
                               <div className="grid grid-cols-2 gap-2">
                                 <input
                                   type="text"
                                   value={editForm.icon}
                                   onChange={(e) => setEditForm({ ...editForm, icon: e.target.value })}
-                                  className="px-3 py-2 border rounded-xl text-center text-2xl"
+                                  className="px-3 py-2 border rounded-xl text-center text-2xl dark:bg-gray-800 dark:text-gray-100"
                                   placeholder="🏆"
                                 />
                                 <input
                                   type="number"
                                   value={editForm.stage}
                                   onChange={(e) => setEditForm({ ...editForm, stage: Number(e.target.value) })}
-                                  className="px-3 py-2 border rounded-xl"
+                                  className="px-3 py-2 border rounded-xl dark:bg-gray-800 dark:text-gray-100"
                                   placeholder="段階"
                                   min="1"
                                 />
@@ -411,21 +456,21 @@ export const Achievements = () => {
                                 type="text"
                                 value={editForm.title}
                                 onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                                className="w-full px-3 py-2 border rounded-xl"
+                                className="w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:text-gray-100"
                                 placeholder="タイトル"
                               />
                               <input
                                 type="text"
                                 value={editForm.description}
                                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                                className="w-full px-3 py-2 border rounded-xl"
+                                className="w-full px-3 py-2 border rounded-xl dark:bg-gray-800 dark:text-gray-100"
                                 placeholder="説明"
                               />
                               <div className="grid grid-cols-2 gap-2">
                                 <select
                                   value={editForm.category}
                                   onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                                  className="px-3 py-2 border rounded-xl"
+                                  className="px-3 py-2 border rounded-xl dark:bg-gray-800 dark:text-gray-100"
                                 >
                                   {categories.map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
@@ -435,7 +480,7 @@ export const Achievements = () => {
                                   type="text"
                                   value={editForm.series}
                                   onChange={(e) => setEditForm({ ...editForm, series: e.target.value })}
-                                  className="px-3 py-2 border rounded-xl"
+                                  className="px-3 py-2 border rounded-xl dark:bg-gray-800 dark:text-gray-100"
                                   placeholder="シリーズ名"
                                 />
                               </div>
@@ -444,49 +489,46 @@ export const Achievements = () => {
                                   type="number"
                                   value={editForm.target_days || ''}
                                   onChange={(e) => setEditForm({ ...editForm, target_days: e.target.value ? Number(e.target.value) : null })}
-                                  className="px-3 py-2 border rounded-xl"
+                                  className="px-3 py-2 border rounded-xl dark:bg-gray-800 dark:text-gray-100"
                                   placeholder="目標日数"
                                 />
                                 <input
                                   type="date"
                                   value={editForm.unlocked_at ? editForm.unlocked_at.split('T')[0] : ''}
                                   onChange={(e) => setEditForm({ ...editForm, unlocked_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                                  className="px-3 py-2 border rounded-xl"
+                                  className="px-3 py-2 border rounded-xl dark:bg-gray-800 dark:text-gray-100"
                                 />
                               </div>
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => handleUpdateAchievement(achievement.id)}
-                                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600"
+                                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 flex items-center justify-center gap-1"
                                 >
-                                  <Check className="w-4 h-4 inline" /> 保存
+                                  <Check className="w-4 h-4" /> 保存
                                 </button>
                                 <button
                                   onClick={() => setEditingAchievement(null)}
-                                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-xl hover:bg-gray-400"
+                                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-xl hover:bg-gray-400 flex items-center justify-center gap-1"
                                 >
-                                  <X className="w-4 h-4 inline" /> キャンセル
+                                  <X className="w-4 h-4" /> キャンセル
                                 </button>
                               </div>
                             </div>
                           ) : (
-                            // 表示モード
                             <>
                               <div className="flex items-start gap-3">
-                                {/* アイコン */}
                                 <div className={`text-4xl ${isLocked ? 'grayscale opacity-50' : ''}`}>
                                   {isLocked ? '🔒' : achievement.icon}
                                 </div>
 
-                                {/* コンテンツ */}
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full">
                                       Stage {achievement.stage}
                                     </span>
                                     {achievement.target_days && (
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                                        <Target className="w-3 h-3 inline" /> {achievement.target_days}日目標
+                                      <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                        <Target className="w-3 h-3" /> {achievement.target_days}日目標
                                       </span>
                                     )}
                                   </div>
@@ -506,12 +548,11 @@ export const Achievements = () => {
                                   )}
                                 </div>
 
-                                {/* アクションボタン */}
                                 <div className="flex flex-col gap-2">
                                   {!achievement.is_unlocked && !isLocked && (
                                     <button
                                       onClick={() => handleUnlock(achievement.id)}
-                                      className="px-3 py-1 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 flex items-center gap-1"
+                                      className="px-3 py-1 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 flex items-center gap-1 whitespace-nowrap"
                                     >
                                       <Check className="w-4 h-4" />
                                       解除
@@ -536,7 +577,6 @@ export const Achievements = () => {
                                 </div>
                               </div>
 
-                              {/* 進行線 */}
                               {index < items.length - 1 && (
                                 <div className="absolute left-8 bottom-0 w-0.5 h-4 bg-gray-300 dark:bg-gray-600 translate-y-full" />
                               )}
@@ -553,91 +593,180 @@ export const Achievements = () => {
         </div>
       </main>
 
-      {/* 実績追加モーダル */}
+      {/* 実績追加モーダル（改善版） */}
       {isAddingAchievement && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Plus className="w-6 h-6 text-purple-600" />
-              新しい実績を追加
-            </h3>
-            
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  value={newAchievement.icon}
-                  onChange={(e) => setNewAchievement({ ...newAchievement, icon: e.target.value })}
-                  className="px-3 py-2 border rounded-xl text-center text-2xl"
-                  placeholder="🏆"
-                />
-                <input
-                  type="number"
-                  value={newAchievement.stage}
-                  onChange={(e) => setNewAchievement({ ...newAchievement, stage: Number(e.target.value) })}
-                  className="px-3 py-2 border rounded-xl"
-                  placeholder="段階"
-                  min="1"
-                />
-              </div>
-              <input
-                type="text"
-                value={newAchievement.title}
-                onChange={(e) => setNewAchievement({ ...newAchievement, title: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl"
-                placeholder="タイトル（例: 生後10日達成）"
-              />
-              <input
-                type="text"
-                value={newAchievement.description}
-                onChange={(e) => setNewAchievement({ ...newAchievement, description: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl"
-                placeholder="説明（例: 生後10日を迎えました！）"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={newAchievement.category}
-                  onChange={(e) => setNewAchievement({ ...newAchievement, category: e.target.value })}
-                  className="px-3 py-2 border rounded-xl"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={newAchievement.series}
-                  onChange={(e) => setNewAchievement({ ...newAchievement, series: e.target.value })}
-                  className="px-3 py-2 border rounded-xl"
-                  placeholder="シリーズ名"
-                />
-              </div>
-              <input
-                type="number"
-                value={newAchievement.target_days || ''}
-                onChange={(e) => setNewAchievement({ ...newAchievement, target_days: e.target.value ? Number(e.target.value) : null })}
-                className="w-full px-3 py-2 border rounded-xl"
-                placeholder="目標日数（例: 10）"
-              />
-              <input
-                type="date"
-                value={newAchievement.unlocked_at ? newAchievement.unlocked_at.split('T')[0] : ''}
-                onChange={(e) => setNewAchievement({ ...newAchievement, unlocked_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                className="w-full px-3 py-2 border rounded-xl"
-                placeholder="達成日（任意）"
-              />
-            </div>
-
-            <div className="flex gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setIsAddingAchievement(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Plus className="w-6 h-6 text-purple-600" />
+                新しい実績を追加
+              </h3>
               <button
                 onClick={() => setIsAddingAchievement(false)}
-                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* ヘルプテキスト */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+              <div className="flex gap-2">
+                <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-900 dark:text-blue-100">
+                  <p className="font-medium mb-2">実績登録のヒント</p>
+                  <ul className="space-y-1 text-xs">
+                    <li>• <strong>シリーズ名</strong>: 関連する実績をまとめます（例: 「生後日数」「予防接種」）</li>
+                    <li>• <strong>段階</strong>: シリーズ内の順番（1, 2, 3...）</li>
+                    <li>• <strong>目標日数</strong>: 自動解除の設定（例: 10日目に解除）</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              {/* 基本情報 */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">基本情報</h4>
+                
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      アイコン
+                    </label>
+                    <input
+                      type="text"
+                      value={newAchievement.icon}
+                      onChange={(e) => setNewAchievement({ ...newAchievement, icon: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-xl text-center text-2xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                      placeholder="🏆"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      タイトル <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newAchievement.title}
+                      onChange={(e) => setNewAchievement({ ...newAchievement, title: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                      placeholder="例: 生後10日達成"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    説明
+                  </label>
+                  <input
+                    type="text"
+                    value={newAchievement.description}
+                    onChange={(e) => setNewAchievement({ ...newAchievement, description: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                    placeholder="例: 生まれて10日が経ちました"
+                  />
+                </div>
+              </div>
+
+              {/* 分類 */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">分類</h4>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      カテゴリ
+                    </label>
+                    <select
+                      value={newAchievement.category}
+                      onChange={(e) => setNewAchievement({ ...newAchievement, category: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                    >
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>
+                          {categoryColors[cat]?.icon || '⭐'} {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      シリーズ名
+                    </label>
+                    <input
+                      type="text"
+                      value={newAchievement.series}
+                      onChange={(e) => setNewAchievement({ ...newAchievement, series: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                      placeholder="例: 生後日数"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 段階と目標 */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">段階と目標</h4>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      段階
+                    </label>
+                    <input
+                      type="number"
+                      value={newAchievement.stage}
+                      onChange={(e) => setNewAchievement({ ...newAchievement, stage: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border rounded-xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                      placeholder="1"
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      目標日数（任意）
+                    </label>
+                    <input
+                      type="number"
+                      value={newAchievement.target_days || ''}
+                      onChange={(e) => setNewAchievement({ ...newAchievement, target_days: e.target.value ? Number(e.target.value) : null })}
+                      className="w-full px-3 py-2 border rounded-xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                      placeholder="例: 10"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 達成日 */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  達成日（任意）
+                </label>
+                <input
+                  type="date"
+                  value={newAchievement.unlocked_at ? newAchievement.unlocked_at.split('T')[0] : ''}
+                  onChange={(e) => setNewAchievement({ ...newAchievement, unlocked_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                  className="w-full px-3 py-2 border rounded-xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  既に達成済みの場合は日付を入力してください
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setIsAddingAchievement(false)}
+                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
               >
                 キャンセル
               </button>
               <button
                 onClick={handleAddAchievement}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg"
               >
                 追加
               </button>
@@ -646,44 +775,86 @@ export const Achievements = () => {
         </div>
       )}
 
-      {/* カテゴリ追加モーダル */}
-      {isAddingCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              カテゴリを追加
-            </h3>
+      {/* カテゴリ管理モーダル */}
+      {isManagingCategories && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setIsManagingCategories(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Settings className="w-6 h-6 text-purple-600" />
+                カテゴリ管理
+              </h3>
+              <button
+                onClick={() => setIsManagingCategories(false)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={newCategory.icon}
-                onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-center text-2xl"
-                placeholder="アイコン（例: 🎯）"
-              />
-              <input
-                type="text"
-                value={newCategory.name}
-                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl"
-                placeholder="カテゴリ名（例: 健康）"
-              />
+            {/* 既存カテゴリ一覧 */}
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {Object.entries(categoryColors).map(([name, config]) => {
+                const hasAchievements = achievements.some(a => a.category === name);
+                return (
+                  <div key={name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{config.icon}</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{name}</span>
+                    </div>
+                    {!hasAchievements && name !== '成長' && name !== 'その他' && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`「${name}」カテゴリを削除しますか？`)) {
+                            deleteCategory(name);
+                          }
+                        }}
+                        className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                      >
+                        削除
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setIsAddingCategory(false)}
-                className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={addNewCategory}
-                className="flex-1 px-4 py-3 bg-purple-500 text-white rounded-xl font-medium"
-              >
-                追加
-              </button>
+            {/* 新規カテゴリ追加 */}
+            <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">新しいカテゴリを追加</h4>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                  placeholder="カテゴリ名（例: 健康）"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={newCategory.icon}
+                    onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
+                    className="px-3 py-2 border rounded-xl text-center text-2xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                    placeholder="🎯"
+                  />
+                  <select
+                    value={newCategory.gradient}
+                    onChange={(e) => setNewCategory({ ...newCategory, gradient: e.target.value })}
+                    className="px-3 py-2 border rounded-xl dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                  >
+                    {GRADIENT_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={addNewCategory}
+                  className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-pink-600 transition-all"
+                >
+                  追加
+                </button>
+              </div>
             </div>
           </div>
         </div>
